@@ -1,0 +1,5 @@
+--require ./bootstrap.js
+--require dotenv/config
+--require chai/register-should
+--require chai/register-expect
+--extension ts
