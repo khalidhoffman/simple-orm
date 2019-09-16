@@ -1,100 +1,155 @@
-import {
-  TableDefinition,
-  SQL,
-  Column,
-  Table
-} from 'sql';
+import * as Knex  from 'knex';
 import * as mysql from 'mysql';
 
-import { SimpleORM }     from '../../core';
-import { logger }        from '../../logger';
-import { AbstractQuery } from '../base';
+import { logger }       from '../../logger';
+import { MetaRegistry } from '../../meta-registry';
 
-const SQL = require('sql');
+import { AbstractQuery }      from '../base';
+import { EntityRelationType } from '../../entity-relation';
+
+const knex = require('knex');
+const sql = knex({
+  dialect: 'mysql',
+  asyncStackTraces: true
+});
+
+export type IEntitySqlRef = Knex.QueryBuilder;
+export type IEntityPropertySqlRef = Knex.QueryBuilder;
+export type IEntityRelationSqlRef = Knex.QueryBuilder;
+export type IEntityPropertyAliasSqlRef<K extends string, E> = Knex.Ref<K, E>;
+
+function getInverseFnPropertyName(fn: Function) {
+  const fnText = fn.toString();
+  const propertyNameRegExp = /\.(.+)$/;
+  return propertyNameRegExp.test(fnText) ? fnText.match(propertyNameRegExp)[1] : undefined;
+}
+
+function getEntitySqlRef(entityMetadata: IClassMeta): IEntitySqlRef {
+  return sql.table(entityMetadata.tableName);
+}
 
 export abstract class AbstractSqlQuery<T = any> extends AbstractQuery {
-  sql = SQL;
+  sql: Knex = sql;
   logger = logger;
+  metaRegistry: MetaRegistry = new MetaRegistry();
+  entitySqlRef: IEntitySqlRef;
+  entityPropertiesMetadata: IPropertyMeta[];
+  entityPrimaryColumnMetadata: IPropertyMeta;
 
   constructor(protected Entity: Constructor<T>, protected queryParams: IQueryParams) {
-    super();
+    super(Entity, queryParams);
+    const entitySqlRef = getEntitySqlRef(this.entityMetadata);
+    const entityPrimaryColumnMetadata = this.metaRegistry.findPrimaryColumn(this.entityPropertiesMetadata);
 
-    const entityMetadata = SimpleORM.classMetaCollection.getClassMeta(Entity);
-    const entityPropertiesMetadata = SimpleORM.propertyMetaCollection.getPropertyMetasByClass(Entity);
-    const entityPrimaryColumnMetadata = this.findPrimaryColumn(entityPropertiesMetadata);
-    const entitySqlParams = this.getSqlParams(entityMetadata, entityPropertiesMetadata);
-
-    entityPrimaryColumnMetadata.meta.propertyValuePath = entityPrimaryColumnMetadata.options.sql.name || entityPrimaryColumnMetadata.meta.propertyValuePath;
-
-    this.sql.setDialect('mysql');
+    this.entitySqlRef = entitySqlRef;
+    this.entityPrimaryColumnMetadata = entityPrimaryColumnMetadata;
     this.store.update({
       sql: this.sql,
-      Entity,
-      queryParams,
-      entityMetadata,
-      entityPropertiesMetadata,
       entityPrimaryColumnMetadata,
-      entitySqlParams
+      entitySqlRef
     });
   }
 
   abstract execute(): Promise<T>;
 
-  protected getEntitySqlParams<E = any>(Entity: Constructor<E>): TableDefinition<string, E> {
-    const entityMetadata = SimpleORM.classMetaCollection.getClassMeta(Entity);
-    const entityPropertiesMetadata = SimpleORM.propertyMetaCollection.getPropertyMetasByClass(Entity);
-    return this.getSqlParams(entityMetadata, entityPropertiesMetadata);
-  }
+  getQueryEntity(EntityConstructor: Constructor, propertyKey?: PropertyKey): IQueryEntity {
+    const classMeta = this.metaRegistry.getClassMeta(EntityConstructor);
+    const primaryMeta = this.metaRegistry.getEntityPrimaryColumnMeta(EntityConstructor);
+    const propertyMeta = propertyKey ? this.metaRegistry.getPropertyMeta(EntityConstructor, propertyKey) : primaryMeta;
 
-  getEntitySqlRef<E = any>(Entity: Constructor<E>): Table<any, any> {
-    const sqlParams = this.getEntitySqlParams(Entity);
-
-    return this.sql.define(sqlParams);
-  }
-
-  getEntityPrimaryColumnMeta<E = any>(Entity: Constructor<E>): IPropertyMeta {
-    const entityPropertiesMetadata = SimpleORM.propertyMetaCollection.getPropertyMetasByClass(Entity);
-    return this.findPrimaryColumn(entityPropertiesMetadata);
-  }
-
-  getEntitySqlColumns(entitySqlRef: SQL, entitySqlParams: TableDefinition<any, any>): Column<any, any>[] {
-    return Object.keys(entitySqlParams.columns).reduce((acc, key) => {
-      return acc.concat(entitySqlRef[key]);
-    }, []);
-  }
-
-  findPrimaryColumn(propertyMetas: IPropertyMeta[]): IPropertyMeta {
-    return this.findMySQLPrimaryColumn(propertyMetas);
-  }
-
-  findMySQLPrimaryColumn(propertyMetas: IPropertyMeta[]): IPropertyMeta {
-    return propertyMetas.find(propertyMeta => propertyMeta.options.sql.primaryKey)
-  }
-
-  getEntityPropertiesMetadataColumns(entityPropertiesMetadata: IPropertyMeta[]): Dict<ColumnDefinition<any, any>> {
-    return entityPropertiesMetadata.map((propertyMetadata) => {
-        return {
-          jsType: String,
-          dataType: propertyMetadata.type || 'string',
-          name: propertyMetadata.propertyName,
-          ...propertyMetadata.options.sql
-        };
-      })
-      .reduce((acc, columnDefinition) => {
-        return Object.assign(acc, { [columnDefinition.name]: columnDefinition })
-      }, {} as Dict<ColumnDefinition<any, any>>)
-  }
-
-  getSqlParams(entityMetadata: IClassMeta, entityPropertiesMetadata: IPropertyMeta[]): TableDefinition<any, any> {
     return {
-      schema: undefined,
-      name: entityMetadata.tableName,
-      columns: this.getEntityPropertiesMetadataColumns(entityPropertiesMetadata)
-    };
+      sqlRef: getEntitySqlRef(classMeta),
+      meta: classMeta,
+      fn: EntityConstructor,
+      propertyKey: propertyMeta.propertyName,
+      propertyMeta: propertyMeta,
+      primaryKey: primaryMeta.propertyName,
+      primaryMeta: primaryMeta
+    }
   }
 
+  getEntityPropertySqlRef<Key extends string, Entity>(entityPropertyMetadata: IPropertyMeta, entityMetadata: IClassMeta = this.entityMetadata, options?: { disableAlias: boolean }): IEntityPropertyAliasSqlRef<Key, Entity> {
+    if (options && options.disableAlias) {
+      return this.sql.ref(entityPropertyMetadata.options.sql.name).withSchema(entityMetadata.tableName);
+    }
+    return this.sql.ref(entityPropertyMetadata.options.sql.name).as(entityPropertyMetadata.options.sql.alias).withSchema(entityMetadata.tableName);
+  }
 
-  execSQL<T = any>(sql: string, values?: any[], connection: mysql.Connection = (global as any).GLOBAL_MYSQL_CONN): Promise<T[]> {
+  getQueryRelations(entityConstructor: Constructor<T>, queryRelationsParams: IQueryRelationsParams<T> = this.queryParams.options.relations, accumulator: IQueryRelation[] = []): IQueryRelation[] {
+    const relations: IQueryRelation[] = accumulator;
+
+    Object.keys(queryRelationsParams).forEach(queryParamProperty => {
+      const entityPropertyRelationMeta = this.metaRegistry.getPropertyRelationMeta(entityConstructor, queryParamProperty as keyof T);
+      if (!entityPropertyRelationMeta) {
+        debugger
+      }
+      const entityResolvedPropertyName = entityPropertyRelationMeta.options.sql.name || this.entityPrimaryColumnMetadata.propertyName;
+      const entityPropertyMeta = this.metaRegistry.getPropertyMeta(this.Entity, entityResolvedPropertyName);
+      let baseRelation: IQueryRelation = {
+        type: entityPropertyRelationMeta.meta.relation.type,
+        related: {
+          property: null,
+          alias: null,
+          entity: null,
+        },
+        base: {
+          property: {
+            entity: this.getQueryEntity(entityConstructor),
+            meta: entityPropertyMeta,
+            relationMeta: entityPropertyRelationMeta,
+            alias: entityPropertyMeta.options.sql.alias
+          },
+          alias: entityPropertyMeta.options.sql.alias,
+          entity: this.entityMetadata
+        }
+      };
+
+      if (entityPropertyRelationMeta && entityPropertyRelationMeta.meta.relation) {
+
+        switch (entityPropertyRelationMeta.meta.relation.type) {
+          case EntityRelationType.OneToMany:
+          case EntityRelationType.ManyToOne: {
+            const relatedEntityConstructor = entityPropertyRelationMeta.options.typeFunction();
+            const relatedEntityPrimaryMeta = this.metaRegistry.getEntityPrimaryColumnMeta(relatedEntityConstructor);
+            const relatedEntityPropertyName = getInverseFnPropertyName(entityPropertyRelationMeta.options.inverseSide);
+            const relatedPropertyRelationMeta = this.metaRegistry.getPropertyRelationMeta(relatedEntityConstructor, relatedEntityPropertyName);
+            const relatedEntityMeta = this.metaRegistry.getClassMeta(relatedEntityConstructor);
+            const relatedResolvedPropertyName = relatedPropertyRelationMeta.options.sql.name || relatedEntityPrimaryMeta.propertyName;
+            const relatedPropertyMeta = this.metaRegistry.getPropertyMeta(relatedEntityConstructor, relatedResolvedPropertyName as keyof T)
+            const nestedQueryRelations = this.getQueryRelations(relatedEntityConstructor, queryRelationsParams[queryParamProperty]);
+            baseRelation.type = entityPropertyRelationMeta.meta.relation.type;
+            baseRelation.related = {
+              entity: relatedEntityMeta,
+              alias: relatedPropertyMeta.options.sql.alias,
+              property: {
+                entity: this.getQueryEntity(relatedEntityMeta.fn),
+                meta: relatedPropertyMeta,
+                relationMeta: relatedPropertyRelationMeta,
+                alias: relatedPropertyMeta.options.sql.alias
+              }
+            };
+            relations.push(...nestedQueryRelations);
+            break;
+          }
+
+          case EntityRelationType.OneToOne: {
+            throw new Error('query relations for OneToOne not supported');
+          }
+
+          case EntityRelationType.ManyToMany: {
+            throw new Error('query relations for ManyToMany not supported');
+          }
+        }
+
+        relations.push(baseRelation);
+      }
+
+    });
+
+    return relations;
+  }
+
+  executeSqlQuery<T = any>(sql: string, values: any[] = [], connection: mysql.Connection = (global as any).GLOBAL_MYSQL_CONN): Promise<T[]> {
     const queryOptions: mysql.QueryOptions = {
       sql,
       values

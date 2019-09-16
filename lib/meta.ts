@@ -8,18 +8,33 @@ export class PropertyMeta implements IPropertyMeta {
   options: any;
   typeOrOptions?: any;
   type: IPropertyMetaType;
-  meta: {
-    propertyValuePath: string;
-  };
+  meta: {};
 
   constructor(params: Partial<IPropertyMeta>) {
     Object.assign(this, { meta: {} }, params);
-
-    this.meta.propertyValuePath = this.options.sql.name || this.propertyName;
   }
 
   getValue<PropertyValue = any>(entity): PropertyValue {
-    return _.get(entity, this.meta.propertyValuePath);
+    return _.get(entity, this.propertyName);
+  }
+}
+
+export class PropertyRelationMeta implements IPropertyMeta {
+  className: string;
+  fn: Constructor;
+  object: any;
+  propertyName: string;
+  options: any;
+  typeOrOptions?: any;
+  type: IPropertyMetaType;
+  meta: {};
+
+  constructor(params: Partial<IPropertyMeta>) {
+    Object.assign(this, { meta: {} }, params);
+  }
+
+  getValue<PropertyValue = any>(entity): PropertyValue {
+    return _.get(entity, this.propertyName);
   }
 }
 

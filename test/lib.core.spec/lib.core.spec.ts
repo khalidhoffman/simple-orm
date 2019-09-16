@@ -2,7 +2,10 @@ import * as mysql from 'mysql';
 import { expect } from 'chai';
 
 import { SimpleORM }   from '../../lib/core';
-import { ATestEntity } from './assets';
+import {
+  ATestEntity,
+  ATestParentEntity
+} from './assets';
 
 describe('[core]', function () {
   let connection: mysql.Connection;
@@ -33,6 +36,33 @@ describe('[core]', function () {
         result.should.be.ok;
         result.includedId.should.be.ok;
         expect(result.excludedId).to.be.undefined;
+      });
+
+      it('should return a value for related entities when "Many-To-One" relation is used', async function () {
+        const orm = new SimpleORM(connection);
+        const result: ATestEntity = await orm.retrieve(ATestEntity, 2, {
+          relations: {
+            parent: true
+          }
+        });
+
+        result.should.be.ok;
+        result.includedId.should.be.ok;
+        result.parent.should.be.ok;
+        expect(result.excludedId).to.be.undefined;
+      });
+
+      it('should return a value for related entities when "One-To-Many" relation is used', async function () {
+        const orm = new SimpleORM(connection);
+        const result: ATestParentEntity = await orm.retrieve(ATestParentEntity, 789, {
+          relations: {
+            children: true
+          }
+        });
+
+        result.should.be.ok;
+        result.id.should.be.ok;
+        result.children.should.be.ok;
       });
     })
 

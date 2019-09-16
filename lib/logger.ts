@@ -1,4 +1,7 @@
-import { inspect } from 'util';
+import {
+  inspect,
+  log
+} from 'util';
 
 export abstract class AbstractLogger {
   abstract log(level: 'info' | 'debug' | 'warn' | 'error', message: string, metadata?: any): void;
@@ -12,15 +15,17 @@ export class DefaultLogger extends AbstractLogger {
     console.log(label ? `${label}: ${dump}` : dump);
   }
 
-  log(level: 'info' | 'debug' | 'warn' | 'error', message: string, metadata?: any) {
+  log(level: 'info' | 'debug' | 'warn' | 'error', message: string, metadata: any[] = []) {
+    const logArgs: any[] = [`${level}: ${message}`];
+
     switch (level) {
       case 'error':
-        console.error.apply(console, [`${level}: ${message}`].concat(metadata));
+        console.error.apply(console, logArgs.concat(metadata));
         break;
       case 'info':
       case 'debug':
       case 'warn':
-        console.log.apply(console, [`${level}: ${message}`].concat(metadata));
+        console.log.apply(console, logArgs.concat(metadata));
         break;
     }
   }

@@ -1,10 +1,7 @@
-interface IMetaRegistry {
-  [key: string]: any;
-}
+interface Constructor<ReturnType = any, Arguments extends Array<any> = any[]> extends Function {
+  new(...args: Arguments): ReturnType
 
-interface Constructor<T = any> extends Function {
-  new(...args: any[]): T
-  prototype: T;
+  prototype: ReturnType;
 }
 
 type PrimitiveKeys<T> = {
@@ -22,17 +19,23 @@ interface IMetaParams {
 
 type IMeta = { [key: string]: any; } & IMetaParams;
 
-type IPropertyMetaType = 'string' | string;
+type IPropertyMetaType = 'string' | string | Constructor;
 
 interface Named<Name extends string> {
   name?: Name;
 }
-interface ColumnDefinition<Name extends string, Type> extends Named<Name> {
+
+interface Aliased<Name extends string> extends Named<Name> {
+  name: Name;
+  alias: Name;
+}
+
+interface ColumnDefinition<Name extends string, Type> extends Aliased<Name> {
   jsType?: Type;
   dataType: string;
   primaryKey?: boolean;
   references?: {
-    table:string;
+    table: string;
     column: string;
     onDelete?: 'restrict' | 'cascade' | 'no action' | 'set null' | 'set default';
     onUpdate?: 'restrict' | 'cascade' | 'no action' | 'set null' | 'set default';
@@ -48,16 +51,15 @@ interface IPropertyMetaOptions {
    * possible options for {@link https://www.npmjs.com/package/sql}
    */
   sql?: ColumnDefinition<any, any>
+  typeFunction?: Function;
+  inverseSide?: Function;
 }
 
-type IPropertyMetaValuePath = string;
-
 interface IPropertyMeta extends IMeta {
-  propertyName: string;
+  propertyName: PropertyKey;
   options: IPropertyMetaOptions;
   type?: IPropertyMetaType;
   meta?: {
-    propertyValuePath: IPropertyMetaValuePath;
     relation?: IEntityRelation;
   }
 }
@@ -71,24 +73,22 @@ interface IQueryParams {
   options?: IRetrieveOptions;
 }
 
-type IEntityRelationType = string
+type IEntityRelationType = 'many-to-one' | 'many-to-many' | 'one-to-many' | 'one-to-one';
+type IEntityRelationOperator = '=' | '>' | '<' | '>=' | '<=' | 'REGEXP' | 'IS' | 'IS NOT';
 
 interface IEntityRelation {
-  left: {
-    fn: Constructor,
+  base: {
     property: PropertyKey;
-    getFn?: (object?: any) => Constructor;
+    getFn: (object?: any) => Constructor;
   };
-  right: {
-    fn: Constructor,
+  related: {
     property: PropertyKey;
-    getFn?: (object?: any) => Constructor;
+    getFn: (object?: any) => Constructor;
   };
   type: IEntityRelationType;
 }
 
 // type ObjectType<T> = { new (): T }|Function;
-type ObjectType<T> = Constructor<T>;
 
 interface Dict<T> {
   [key: string]: T;
@@ -101,4 +101,35 @@ type IRelationalQueryPartial<T> = { [K in keyof T]?: IRelationalQueryPartial<T[K
 
 interface IRetrieveOptions<T = any> {
   relations: IRelationalQueryPartial<T>;
+}
+
+type IQueryRelationsParams<T> = IRelationalQueryPartial<T>;
+
+interface IQueryEntity {
+  fn: Constructor;
+  sqlRef: any;
+  meta: IClassMeta;
+  primaryKey: PropertyKey;
+  primaryMeta: IPropertyMeta;
+  propertyMeta: IPropertyMeta;
+  propertyKey: PropertyKey;
+}
+
+interface IQueryProperty {
+  entity: IQueryEntity;
+  meta: IPropertyMeta;
+  relationMeta: IPropertyMeta;
+  alias: string;
+}
+
+interface IQueryRelationProperty {
+  alias: string;
+  entity: IClassMeta;
+  property: IQueryProperty;
+}
+
+interface IQueryRelation {
+  type: IEntityRelationType;
+  base: IQueryRelationProperty;
+  related: IQueryRelationProperty;
 }

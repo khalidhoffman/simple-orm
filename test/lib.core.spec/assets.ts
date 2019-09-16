@@ -7,7 +7,7 @@ import {
 } from '../../lib';
 
 
-@Entity('ParentSequelizeClass')
+@Entity('ParentSequelizeClasses')
 export class ATestParentEntity {
   @PrimaryGeneratedColumn({
     type: 'int',
@@ -38,8 +38,13 @@ export class ATestEntity {
   })
   includedId: number;
 
+  @Column({
+    type: 'string',
+    name: 'name'
+  })
+  name: string;
 
-  @ManyToOne(type => ATestParentEntity, ATestParentEntity => ATestParentEntity.children, { name: 'parentId' })
+  @ManyToOne(type => ATestParentEntity, ATestParentEntity => ATestParentEntity.children, { name: 'includedId' })
   parent: ATestParentEntity;
 
   excludedId: string;

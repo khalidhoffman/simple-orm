@@ -1,21 +1,27 @@
 import "reflect-metadata";
 
 import { SimpleORM }          from './core';
-import { PropertyMeta }       from './meta';
+import {
+  PropertyMeta,
+  PropertyRelationMeta
+} from './meta';
 import { EntityRelationType } from './entity-relation';
 
 export function Column(columnOptions) {
-  const options = {
-    type: 'string',
-    sql: {
-      primaryKey: false,
-      ...columnOptions
-    },
-    ...columnOptions
-  };
-  const type = options.type;
 
   return function (object, propertyName) {
+    const options = {
+      type: 'string',
+      sql: {
+        name: propertyName,
+        alias: `${object.constructor.name}_${propertyName}`,
+        primaryKey: false,
+        ...columnOptions
+      },
+      ...columnOptions
+    };
+    const type = options.type;
+
     SimpleORM.propertyMetaCollection.push(new PropertyMeta({
       fn: object.constructor,
       className: object.constructor.name,
@@ -43,18 +49,21 @@ export function PrimaryColumn(typeOrOptions, options?) {
 }
 
 export function PrimaryGeneratedColumn(columnOptions) {
-  const options: IPropertyMetaOptions = {
-    type: 'string',
-    sql: {
-      primaryKey: true,
-      unique: true,
-      ...columnOptions
-    },
-    ...columnOptions
-  };
 
   return function (object, propertyName) {
-    SimpleORM.propertyMetaCollection.push({
+    const options: IPropertyMetaOptions = {
+      type: 'string',
+      sql: {
+        name: propertyName,
+        alias: `${object.constructor.name}_${propertyName}`,
+        primaryKey: true,
+        unique: true,
+        ...columnOptions
+      },
+      ...columnOptions
+    };
+
+    SimpleORM.propertyMetaCollection.push(new PropertyMeta({
       fn: object.constructor,
       className: object.constructor.name,
       propertyName,
@@ -63,10 +72,8 @@ export function PrimaryGeneratedColumn(columnOptions) {
       object,
       options,
       columnOptions,
-      meta: {
-        propertyValuePath: propertyName
-      }
-    });
+      meta: { }
+    }));
   };
 }
 
@@ -162,22 +169,23 @@ function ManyToMany(typeFunction, inverseSideOrOptions, options?) {
   };
 }
 
-export function ManyToOne<T,R>(typeFunction: (type?: any) => ObjectType<T>, inverseSide: (object: T) => R, columnOptions?) {
-  const options = {
-    type: 'string',
-    sql: {
-      ...columnOptions
-    },
-    typeFunction,
-    inverseSide,
-    ...columnOptions
-  };
-  const type = options.type;
+export function ManyToOne<T,R>(typeFunction: (type?: any) => Constructor<T>, inverseSide: (object: T) => R, columnOptions?) {
 
   return function (object, propertyName) {
-    let relatedEntity = Reflect.getMetadata('design:returntype', object, propertyName);
+    const options = {
+      type: undefined,
+      sql: {
+        // name: propertyName,
+        // alias: `${object.constructor.name}_${propertyName}`,
+        ...columnOptions
+      },
+      typeFunction,
+      inverseSide,
+      ...columnOptions
+    };
+    const type = options.type;
 
-    SimpleORM.propertyMetaCollection.push({
+    SimpleORM.propertyMetaCollection.push(new PropertyRelationMeta({
       fn: object.constructor,
       className: object.constructor.name,
       propertyName,
@@ -186,40 +194,39 @@ export function ManyToOne<T,R>(typeFunction: (type?: any) => ObjectType<T>, inve
       options,
       columnOptions,
       meta: {
-        propertyValuePath: propertyName,
         relation: {
           type: EntityRelationType.ManyToOne,
-          left: {
-            fn: relatedEntity,
+          base: {
             getFn: typeFunction,
             property: undefined
           },
-          right: {
-            fn: object.constructor,
+          related: {
+            getFn: () => object.constructor,
             property: propertyName
           }
         }
       }
-    });
+    }));
   };
 }
 
-export function OneToMany<T, R>(typeFunction: (type?: any) => ObjectType<T>, inverseSide: (object: T) => R, columnOptions?) {
-  const options = {
-    type: 'string',
-    sql: {
-      ...columnOptions
-    },
-    typeFunction,
-    inverseSide,
-    ...columnOptions
-  };
-  const type = options.type;
+export function OneToMany<T, R>(typeFunction: (type?: any) => Constructor<T>, inverseSide: (object: T) => R, columnOptions?) {
 
   return function (object, propertyName) {
-    let relatedEntity = Reflect.getMetadata('design:returntype', object.constructor, propertyName);
+    const options = {
+      type: undefined,
+      sql: {
+        // name: propertyName,
+        // alias: `${object.constructor.name}_${propertyName}`,
+        ...columnOptions
+      },
+      typeFunction,
+      inverseSide,
+      ...columnOptions
+    };
+    const type = options.type;
 
-    SimpleORM.propertyMetaCollection.push({
+    SimpleORM.propertyMetaCollection.push(new PropertyRelationMeta({
       fn: object.constructor,
       className: object.constructor.name,
       propertyName,
@@ -228,21 +235,19 @@ export function OneToMany<T, R>(typeFunction: (type?: any) => ObjectType<T>, inv
       options,
       columnOptions,
       meta: {
-        propertyValuePath: propertyName,
         relation: {
           type: EntityRelationType.OneToMany,
-          left: {
-            fn: object.constructor,
+          base: {
+            getFn: () => object.constructor,
             property: propertyName
           },
-          right: {
-            fn: relatedEntity,
+          related: {
             getFn: typeFunction,
             property: undefined
           }
         }
       }
-    });
+    }));
   };
 }
 

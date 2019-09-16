@@ -9,10 +9,10 @@
     "test": "mocha"
   },
   "dependencies": {
+    "knex": "^0.19.4",
     "mysql": "^2.17.1",
     "reflect-metadata": "^0.1.13",
-    "simple-store": "git+https://github.com/khalidhoffman/simple-store.git",
-    "sql": "^0.78.0"
+    "simple-store": "git+https://github.com/khalidhoffman/simple-store.git"
   },
   "devDependencies": {
     "@types/chai": "^4.1.7",
