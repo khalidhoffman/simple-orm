@@ -56,7 +56,8 @@ describe('[core]', function () {
         const orm = new SimpleORM(connection);
         const result: ATestParentEntity = await orm.retrieve(ATestParentEntity, 789, {
           relations: {
-            children: true
+            children: true,
+            parent: true
           }
         });
 

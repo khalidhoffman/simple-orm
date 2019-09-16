@@ -7,6 +7,25 @@ import {
 } from '../../lib';
 
 
+@Entity('GrandParentClasses')
+export class ATestGrandParentEntity {
+  @PrimaryGeneratedColumn({
+    type: 'int',
+    name: 'id'
+  })
+  id: number;
+
+  @OneToMany(type => ATestParentEntity, ATestParentEntity => ATestParentEntity.parent)
+  children: ATestParentEntity[];
+
+  @OneToMany(type => ATestEntity, ATestEntity => ATestEntity.grandParent)
+  grandChildren: ATestEntity[];
+
+  constructor(props?: Partial<ATestEntity>) {
+    Object.assign(this, props);
+  }
+}
+
 @Entity('ParentSequelizeClasses')
 export class ATestParentEntity {
   @PrimaryGeneratedColumn({
@@ -17,6 +36,9 @@ export class ATestParentEntity {
 
   @OneToMany(type => ATestEntity, ATestEntity => ATestEntity.parent)
   children: ATestEntity[];
+
+  @ManyToOne(type => ATestGrandParentEntity, ATestGrandParentEntity => ATestGrandParentEntity.children, { name: 'parentId' })
+  parent: ATestGrandParentEntity;
 
   constructor(props?: Partial<ATestEntity>) {
     Object.assign(this, props);
@@ -46,6 +68,9 @@ export class ATestEntity {
 
   @ManyToOne(type => ATestParentEntity, ATestParentEntity => ATestParentEntity.children, { name: 'includedId' })
   parent: ATestParentEntity;
+
+  @ManyToOne(type => ATestGrandParentEntity, ATestGrandParentEntity => ATestGrandParentEntity.grandChildren, { name: 'grandParentId' })
+  grandParent: ATestGrandParentEntity;
 
   excludedId: string;
 
