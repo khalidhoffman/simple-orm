@@ -38,3 +38,6 @@ export class ClassMetaCollection extends Array<IClassMeta> {
     })
   }
 }
+
+export const GlobalClassMetaCollection = new ClassMetaCollection();
+export const GlobalPropertyMetaCollection = new PropertyMetaCollection();

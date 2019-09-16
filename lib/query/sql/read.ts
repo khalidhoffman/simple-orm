@@ -5,8 +5,10 @@ import {
   IEntityPropertyAliasSqlRef
 }                             from './abstract';
 import { EntityRelationType } from '../../entity-relation';
-
-type ISqlQueryValues<T = any> = { [key: string]: T };
+import {
+  getQueryRelations,
+  queryValueMerge
+} from '../../utils';
 
 export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
 
@@ -29,7 +31,7 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
    */
 
   applySelects(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
-    const relationalSelects = this.getQueryRelations(this.Entity).reduce((selects, relationMeta) => {
+    const relationalSelects = getQueryRelations(this.Entity, this.relations).reduce((selects, relationMeta) => {
       return selects.concat([
           this.getEntityPropertySqlRef(relationMeta.base.property.meta, relationMeta.base.entity),
           this.getEntityPropertySqlRef(relationMeta.related.property.meta, relationMeta.related.entity),
@@ -55,7 +57,7 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
   }
 
   applyJoins(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
-    const queryRelations = this.getQueryRelations(this.Entity);
+    const queryRelations = getQueryRelations(this.Entity, this.relations);
     let tableName: string;
     let baseProperty: IEntityPropertyAliasSqlRef<string, T>;
     let relatedProperty: IEntityPropertyAliasSqlRef<string, any>;
@@ -97,84 +99,10 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
   }
 
   private async executeSql(): Promise<T> {
-    const EntityConstructor: Constructor = this.store.get('Entity');
-
     const persistedEntityValuesQuery = this.getQuery();
-
     const results = await this.executeSqlQuery(persistedEntityValuesQuery);
 
-    const persistedEntityValues = results.reduce((acc, result) => {
-      return Object.assign(acc, result);
-    }, {});
-
-    let instance: T;
-
-    instance = this.assignSqlValues(EntityConstructor, persistedEntityValues, this.relations);
-
-    return instance;
-  }
-
-  assignSqlValues<InstanceType = T>(constructor: Constructor<InstanceType>, persistedEntityValues: ISqlQueryValues, relations: IRelationalQueryPartial<InstanceType> | true) {
-    return Object.assign(
-      new constructor(),
-      this.assignInstanceValues(constructor, persistedEntityValues),
-      this.assignRelationInstanceValues(constructor, persistedEntityValues, relations === true ? {} : relations)
-    );
-  }
-
-
-  assignInstanceValues(entityConstructor: Constructor, values: ISqlQueryValues) {
-
-    return Object.keys(values).reduce((entityInstance: T, entityColumnName: string) => {
-      const columnMeta: IPropertyMeta = this.metaRegistry.getPropertyMetasByConstructor(entityInstance.constructor as Constructor).find(propertyMeta => {
-        return propertyMeta.options.sql.alias === entityColumnName;
-      });
-
-      if (!columnMeta) {
-        this.logger.log('warn', `property metadata not found for sql column: ${entityInstance.constructor.name}.${entityColumnName}`);
-        return entityInstance;
-      }
-
-      entityInstance[columnMeta.propertyName] = values[entityColumnName];
-
-      return entityInstance;
-    }, new entityConstructor());
-
-  }
-
-  assignRelationInstanceValues<InstanceType = T>(EntityConstructor: Constructor<InstanceType>, values: ISqlQueryValues, relations: IRelationalQueryPartial<InstanceType> = this.relations): InstanceType {
-
-    return Object.keys(relations).reduce((entityInstance: InstanceType, relationPropertyKey: string) => {
-      const queryRelation: IQueryRelation = this.getQueryRelations(entityInstance.constructor as Constructor).find(queryRelation => {
-        return queryRelation.base.property.relationMeta.propertyName === relationPropertyKey;
-      });
-      const columnMeta: IPropertyMeta = queryRelation.base.property.meta;
-
-      if (!columnMeta) {
-        this.logger.log('warn', `relation metadata not found for sql column: ${entityInstance.constructor.name}.${relationPropertyKey}`);
-        return entityInstance;
-      }
-
-      switch(queryRelation.type) {
-        case EntityRelationType.ManyToOne: {
-          entityInstance[queryRelation.base.property.relationMeta.propertyName] = this.assignSqlValues(queryRelation.related.entity.fn, values, relations[relationPropertyKey]);
-          break;
-        }
-
-        case EntityRelationType.OneToMany: {
-          let instances = entityInstance[queryRelation.base.property.relationMeta.propertyName] || [];
-          entityInstance[queryRelation.base.property.relationMeta.propertyName] = instances.concat(this.assignSqlValues(queryRelation.related.entity.fn, values, relations[relationPropertyKey]));
-          break;
-        }
-
-        default: {
-          entityInstance[queryRelation.base.property.relationMeta.propertyName] = this.assignSqlValues(queryRelation.related.entity.fn, values, relations[relationPropertyKey]);
-          break;
-        }
-      }
-
-      return entityInstance;
-    }, new EntityConstructor());
+    return queryValueMerge(this.Entity, results, this.relations) as T;
   }
 
   async execute(): Promise<T> {

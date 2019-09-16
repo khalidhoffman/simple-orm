@@ -1,28 +1,17 @@
 import {
   ClassMetaCollection,
+  GlobalClassMetaCollection,
+  GlobalPropertyMetaCollection,
   PropertyMetaCollection
-}                    from './meta-collection';
-import { SimpleORM } from './core';
+} from './meta-collection';
 
 export class MetaRegistry {
-  classMetaCollection: ClassMetaCollection = SimpleORM.classMetaCollection;
-  propertyMetaCollection: PropertyMetaCollection = SimpleORM.propertyMetaCollection;
+  classMetaCollection: ClassMetaCollection = GlobalClassMetaCollection;
+  propertyMetaCollection: PropertyMetaCollection = GlobalPropertyMetaCollection;
 
-  getEntityPrimaryColumnMeta<E = any>(Entity: Constructor<E>): IPropertyMeta {
-    const entityPropertiesMetadata = SimpleORM.propertyMetaCollection.getPropertyMetasByConstructor(Entity);
-    return this.findPrimaryColumn(entityPropertiesMetadata);
-  }
-
-  findPrimaryColumn(propertyMetas: IPropertyMeta[]): IPropertyMeta {
-    return this.findPrimaryColumnMeta(propertyMetas);
-  }
-
-  isPrimaryColumnMeta(propertyMeta: IPropertyMeta): boolean {
-    return propertyMeta.options.sql.primaryKey;
-  }
-
-  findPrimaryColumnMeta(propertyMetas: IPropertyMeta[]): IPropertyMeta {
-    return propertyMetas.find(propertyMeta => this.isPrimaryColumnMeta(propertyMeta));
+  getIdentifierPropertyMeta<T = any>(constructor: Constructor<T>): IPropertyMeta {
+    const entityPropertiesMetadata = this.propertyMetaCollection.getPropertyMetasByConstructor(constructor);
+    return entityPropertiesMetadata.find(propertyMeta => propertyMeta.options.sql.primaryKey);
   }
 
   getPropertyMeta<T>(constructor: Constructor<T>, propertyName: keyof T): IPropertyMeta {
@@ -52,3 +41,5 @@ export class MetaRegistry {
     return this.classMetaCollection.getClassMeta(constructor);
   }
 }
+
+export const GlobalMetaRegistry = new MetaRegistry();

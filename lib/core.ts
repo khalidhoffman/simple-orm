@@ -1,8 +1,8 @@
 import * as mysql from 'mysql';
 
 import {
-  ClassMetaCollection,
-  PropertyMetaCollection
+  GlobalClassMetaCollection,
+  GlobalPropertyMetaCollection
 }                       from './meta-collection';
 import { SqlReadQuery } from './query';
 
@@ -14,8 +14,8 @@ import { SqlReadQuery } from './query';
  */
 
 export class SimpleORM {
-  static classMetaCollection = new ClassMetaCollection();
-  static propertyMetaCollection = new PropertyMetaCollection();
+  static classMetaCollection = GlobalClassMetaCollection;
+  static propertyMetaCollection = GlobalPropertyMetaCollection;
 
   constructor(private connection: mysql.Connection) {
     (global as any).GLOBAL_MYSQL_CONN = connection;

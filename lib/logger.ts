@@ -1,7 +1,4 @@
-import {
-  inspect,
-  log
-} from 'util';
+import { inspect } from 'util';
 
 export abstract class AbstractLogger {
   abstract log(level: 'info' | 'debug' | 'warn' | 'error', message: string, metadata?: any): void;

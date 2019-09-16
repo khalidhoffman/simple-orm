@@ -116,7 +116,7 @@ interface IQueryEntity {
 }
 
 interface IQueryProperty {
-  entity: IQueryEntity;
+  entity: IClassMeta;
   meta: IPropertyMeta;
   relationMeta: IPropertyMeta;
   alias: string;
@@ -133,3 +133,5 @@ interface IQueryRelation {
   base: IQueryRelationProperty;
   related: IQueryRelationProperty;
 }
+
+type IQueryValues<T = any> = { [key: string]: T };

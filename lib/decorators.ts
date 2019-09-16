@@ -1,11 +1,14 @@
-import "reflect-metadata";
+import 'reflect-metadata';
 
-import { SimpleORM }          from './core';
 import {
   PropertyMeta,
   PropertyRelationMeta
-} from './meta';
+}                             from './meta';
 import { EntityRelationType } from './entity-relation';
+import {
+  GlobalClassMetaCollection,
+  GlobalPropertyMetaCollection
+}                             from './meta-collection';
 
 export function Column(columnOptions) {
 
@@ -22,7 +25,7 @@ export function Column(columnOptions) {
     };
     const type = options.type;
 
-    SimpleORM.propertyMetaCollection.push(new PropertyMeta({
+    GlobalPropertyMetaCollection.push(new PropertyMeta({
       fn: object.constructor,
       className: object.constructor.name,
       propertyName,
@@ -63,7 +66,7 @@ export function PrimaryGeneratedColumn(columnOptions) {
       ...columnOptions
     };
 
-    SimpleORM.propertyMetaCollection.push(new PropertyMeta({
+    GlobalPropertyMetaCollection.push(new PropertyMeta({
       fn: object.constructor,
       className: object.constructor.name,
       propertyName,
@@ -72,7 +75,7 @@ export function PrimaryGeneratedColumn(columnOptions) {
       object,
       options,
       columnOptions,
-      meta: { }
+      meta: {}
     }));
   };
 }
@@ -95,7 +98,7 @@ export function ChildEntity(tableName, options?) {
 
 export function Entity(tableName: string, options?) {
   return function (object) {
-    SimpleORM.classMetaCollection.push({
+    GlobalClassMetaCollection.push({
       fn: object,
       className: object.name,
       object,
@@ -169,7 +172,7 @@ function ManyToMany(typeFunction, inverseSideOrOptions, options?) {
   };
 }
 
-export function ManyToOne<T,R>(typeFunction: (type?: any) => Constructor<T>, inverseSide: (object: T) => R, columnOptions?) {
+export function ManyToOne<T, R>(typeFunction: (type?: any) => Constructor<T>, inverseSide: (object: T) => R, columnOptions?) {
 
   return function (object, propertyName) {
     const options = {
@@ -185,7 +188,7 @@ export function ManyToOne<T,R>(typeFunction: (type?: any) => Constructor<T>, inv
     };
     const type = options.type;
 
-    SimpleORM.propertyMetaCollection.push(new PropertyRelationMeta({
+    GlobalPropertyMetaCollection.push(new PropertyRelationMeta({
       fn: object.constructor,
       className: object.constructor.name,
       propertyName,
@@ -226,7 +229,7 @@ export function OneToMany<T, R>(typeFunction: (type?: any) => Constructor<T>, in
     };
     const type = options.type;
 
-    SimpleORM.propertyMetaCollection.push(new PropertyRelationMeta({
+    GlobalPropertyMetaCollection.push(new PropertyRelationMeta({
       fn: object.constructor,
       className: object.constructor.name,
       propertyName,
