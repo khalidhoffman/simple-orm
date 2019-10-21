@@ -3,3 +3,4 @@
 --require chai/register-should
 --require chai/register-expect
 --extension ts
+--exit
