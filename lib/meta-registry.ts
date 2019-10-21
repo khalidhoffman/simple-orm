@@ -15,7 +15,7 @@ export class MetaRegistry {
   }
 
   getPropertyMeta<T>(constructor: Constructor<T>, propertyName: keyof T): IPropertyMeta {
-    return this.propertyMetaCollection.getPropertyMeta(constructor, propertyName);
+    return this.propertyMetaCollection.getDefaultPropertyMeta(constructor, propertyName);
   }
 
   getRelationMetasByConstructor<T>(constructor: Constructor<T>): IPropertyMeta[] {

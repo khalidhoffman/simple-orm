@@ -5,14 +5,22 @@ import {
 
 export class PropertyMetaCollection extends Array<IPropertyMeta> {
 
-  getPropertyMeta<T>(constructor: Constructor<T>, propertyName: keyof T): IPropertyMeta {
-    return this.find(meta => {
+  getDefaultPropertyMeta<T>(constructor: Constructor<T>, propertyName: keyof T): IPropertyMeta {
+    return this.getPropertyMetas(constructor, propertyName)[0];
+  }
+
+  getDefaultRelationMeta<T>(constructor: Constructor<T>, propertyName: keyof T): IPropertyMeta {
+    return this.getRelationMetas(constructor, propertyName)[0];
+  }
+
+  getPropertyMetas<T>(constructor: Constructor<T>, propertyName: keyof T): IPropertyMeta[] {
+    return this.filter(meta => {
       return (constructor === meta.fn) && (meta.propertyName === propertyName) && meta instanceof PropertyMeta;
     })
   }
 
-  getRelationMeta<T>(constructor: Constructor<T>, propertyName: keyof T): IPropertyMeta {
-    return this.find(meta => {
+  getRelationMetas<T>(constructor: Constructor<T>, propertyName: keyof T): IPropertyMeta[] {
+    return this.filter(meta => {
       return (constructor === meta.fn) && (meta.propertyName === propertyName) && meta instanceof PropertyRelationMeta;
     })
   }
