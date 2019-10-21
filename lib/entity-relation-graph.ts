@@ -57,6 +57,17 @@ export class BaseEntityRelationGraph<T = any> {
         children = this.buildPropertyMetaGraph(entity[propertyName], meta.fn);
       }
 
+      if (result[propertyName] instanceof EntityRelationGraphNode) {
+        result[propertyName].propertyMetas.push(propertyMeta);
+        result[propertyName].relationMetas.push(relationMeta);
+
+        if (children && result[propertyName].children) {
+          throw new Error ('Attempting to redefine entity children. (There are two different related entities attempting to define children of a property)')
+        }
+
+        return result;
+      }
+
       return Object.assign(result, {
         [propertyName]: new EntityRelationGraphNode({
           relationMetas: [relationMeta],
