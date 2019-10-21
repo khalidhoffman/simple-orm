@@ -6,7 +6,7 @@
   "license": "MIT",
   "author": "Khalid Hoffman <khalidhoffman@gmail.com>",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha ./test/**/*.spec.ts"
   },
   "dependencies": {
     "knex": "^0.19.4",
