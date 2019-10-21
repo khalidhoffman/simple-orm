@@ -36,27 +36,29 @@ export class BaseEntityRelationGraph<T = any> {
   classMeta: IClassMeta;
   propertyMetaGraph: IPropertyMetaDict<T>;
 
-  constructor(protected constructor: Constructor<T>, protected entity: T) {
+  constructor(protected constructor: Constructor<T>, protected entity: DeepPartial<T>) {
     this.classMeta = GlobalClassMetaCollection.getClassMeta(constructor);
     this.propertyMetaGraph = this.buildPropertyMetaGraph();
   }
 
 
-  buildPropertyMetaGraph(entity = this.entity, constructor = this.constructor): IPropertyMetaDict<T> {
+  buildPropertyMetaGraph(constructor = this.constructor, entity = this.entity): IPropertyMetaDict<T> {
     return Object.keys(entity).reduce((result, propertyName) => {
       const propertyMeta = GlobalPropertyMetaCollection.getDefaultPropertyMeta(constructor, propertyName as keyof T);
       const relationMeta = GlobalPropertyMetaCollection.getDefaultRelationMeta(constructor, propertyName as keyof T);
-      const meta = relationMeta || propertyMeta;
       let children = null;
 
       if (Array.isArray(entity[propertyName])) {
         const relatedEntityConstructor = relationMeta.options.typeFunction();
-        children = entity[propertyName].map(childEntity => this.buildPropertyMetaGraph(childEntity, relatedEntityConstructor));
+        children = entity[propertyName].map(relatedChildEntity => this.buildPropertyMetaGraph(relatedEntityConstructor, relatedChildEntity));
       }
       else if (isPlainObject(entity[propertyName])) {
-        children = this.buildPropertyMetaGraph(entity[propertyName], meta.fn);
+        const relatedEntity = entity[propertyName];
+        const relatedEntityConstructor = propertyMeta.fn;
+        children = this.buildPropertyMetaGraph(relatedEntityConstructor, relatedEntity);
       }
 
+      // TODO refactor for clarity
       if (result[propertyName] instanceof EntityRelationGraphNode) {
         result[propertyName].propertyMetas.push(propertyMeta);
         result[propertyName].relationMetas.push(relationMeta);
@@ -90,5 +92,9 @@ export class EntityValuesGraph extends BaseEntityRelationGraph {
 }
 
 export class EntityPrimaryKeysGraph extends BaseEntityRelationGraph {
+
+}
+
+export class EntityPersistenceOperationsGraph extends BaseEntityRelationGraph {
 
 }
