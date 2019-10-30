@@ -2,13 +2,25 @@ import * as Knex from 'knex';
 
 import {
   AbstractSqlQuery,
-  IEntityPropertyAliasSqlRef
-}                             from './abstract';
-import { EntityRelationType } from '../../entity-relation';
+  IEntityPropertyAliasSqlRef,
+  IEntityPropertySqlRef,
+  IEntitySqlRef
+}                                    from './abstract';
+import { EntityRelationType }        from '../../entity-relation';
 import {
   getQueryRelations,
   queryValueMerge
-} from '../../utils';
+}                                    from '../../utils';
+import { EntityRelationGraphNode }   from '../../entity-relation-graph';
+import { GlobalClassMetaCollection } from '../../meta-collection';
+
+type IWhereParamValueSqlRef = IEntityPropertyAliasSqlRef<any, any> | any;
+type IWhereParamsPropertySqlRef = IEntityPropertyAliasSqlRef<any, any>;
+
+interface IWhereParam {
+  property: { sql: IWhereParamsPropertySqlRef, meta: IPropertyMeta };
+  value: { raw?: any, sql: IWhereParamValueSqlRef[] };
+}
 
 export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
 
@@ -33,16 +45,16 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
   applySelects(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
     const relationalSelects = getQueryRelations(this.Entity, this.relations).reduce((selects, relationMeta) => {
       return selects.concat([
-          this.getEntityPropertySqlRef(relationMeta.base.property.meta, relationMeta.base.entity),
-          this.getEntityPropertySqlRef(relationMeta.related.property.meta, relationMeta.related.entity),
+          this.getPropertySqlRef(relationMeta.base.property.meta, relationMeta.base.entity),
+          this.getPropertySqlRef(relationMeta.related.property.meta, relationMeta.related.entity),
         ])
         .concat((() => {
           return this.metaRegistry.getPropertyMetasByConstructor(relationMeta.related.entity.fn)
-            .map(relatedPropertyMeta => this.getEntityPropertySqlRef(relatedPropertyMeta, relationMeta.related.entity))
+            .map(relatedPropertyMeta => this.getPropertySqlRef(relatedPropertyMeta, relationMeta.related.entity))
         })());
     }, []);
     const selects = this.entityPropertiesMetadata.map((propertyMetadata) => {
-      return this.getEntityPropertySqlRef(propertyMetadata, this.entityMetadata);
+      return this.getPropertySqlRef(propertyMetadata, this.entityMetadata);
     });
 
     const uniqueSelects = selects.concat(relationalSelects).reduce((uniqueSelects, select) => {
@@ -57,18 +69,19 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
   }
 
   applyJoins(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
-    const queryRelations = getQueryRelations(this.Entity, this.relations);
+    const queryRelations: IQueryRelation[] = getQueryRelations(this.Entity, this.relations);
     let tableName: string;
     let baseProperty: IEntityPropertyAliasSqlRef<string, T>;
     let relatedProperty: IEntityPropertyAliasSqlRef<string, any>;
     queryRelations.forEach((queryRelation: IQueryRelation) => {
 
       switch (queryRelation.type) {
+        case EntityRelationType.OneToOne:
         case EntityRelationType.ManyToOne:
         case EntityRelationType.OneToMany: {
           tableName = queryRelation.related.entity.tableName;
-          baseProperty = this.getEntityPropertySqlRef(queryRelation.base.property.meta, queryRelation.base.entity, { disableAlias: true });
-          relatedProperty = this.getEntityPropertySqlRef(queryRelation.related.property.meta, queryRelation.related.entity, { disableAlias: true });
+          baseProperty = this.getPropertySqlRef(queryRelation.base.property.meta, queryRelation.base.entity, { disableAlias: true });
+          relatedProperty = this.getPropertySqlRef(queryRelation.related.property.meta, queryRelation.related.entity, { disableAlias: true });
 
           sqlQuery = sqlQuery.leftJoin(tableName, this.sql.raw(`${baseProperty.toQuery()} = ${relatedProperty.toQuery()}`));
           break;
@@ -84,8 +97,51 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
   }
 
   applyWhere(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
-    const queryIdentifierProperty = this.getEntityPropertySqlRef(this.entityPrimaryColumnMetadata, this.entityMetadata, { disableAlias: true });
-    return sqlQuery.where(queryIdentifierProperty, '=', this.queryParams.identifier);
+    const whereParamsCol: IWhereParam[] = [];
+
+    this.entityPersistenceGraph.relationGraph.forEachMeta('property', (node: EntityRelationGraphNode, propertyMeta: IPropertyMeta, path: PropertyKey[]) => {
+      const classMeta = GlobalClassMetaCollection.getClassMeta(propertyMeta.fn);
+      const whereParamValue = node.value === undefined ? propertyMeta.options.sql.scope : node.value;
+      let whereParams = whereParamsCol.find(whereParams => {
+        return whereParams.property.meta === propertyMeta;
+      });
+
+      if (!whereParamValue || !(propertyMeta.options.sql.primaryKey || propertyMeta.options.sql.scope)) {
+        return;
+      }
+
+      if (!whereParams) {
+        whereParams = {
+          property: {
+            meta: propertyMeta,
+            sql: this.getPropertySqlRef(propertyMeta, classMeta)
+          },
+          value: {
+            raw: whereParamValue,
+            sql: whereParamValue
+          }
+        };
+
+        whereParamsCol.push(whereParams);
+      } else {
+
+        whereParams.value.sql = [whereParamValue].concat(whereParams.value.sql);
+        whereParams.value.raw = [whereParamValue].concat(whereParams.value.raw);
+      }
+
+    });
+
+    whereParamsCol.forEach(whereParams => {
+      if (Array.isArray(whereParams.value.sql)) {
+
+        sqlQuery = sqlQuery.where(whereParams.property.sql, 'IN', `(${whereParams.value.sql.join(',')})`);
+
+      } else {
+        sqlQuery = sqlQuery.where(whereParams.property.sql, '=', whereParams.value.sql);
+      }
+    });
+
+    return sqlQuery;
   }
 
   getQuery(): string {

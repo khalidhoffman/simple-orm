@@ -43,6 +43,7 @@ interface ColumnDefinition<Name extends string, Type> extends Aliased<Name> {
   notNull?: boolean;
   unique?: boolean;
   defaultValue?: Type;
+  scope?: Type;
 }
 
 interface IPropertyMetaOptions {
@@ -68,9 +69,13 @@ interface IClassMeta extends IMeta {
   tableName: string;
 }
 
-interface IQueryParams {
+/**
+ * @todo create more robust query API {@link https://gitlab.weblee.io/webleedev/simple-orm/issues/1}
+ * @see {@link https://gitlab.weblee.io/webleedev/simple-orm/issues/1}
+ */
+interface IQueryParams<T = any> {
   identifier: number
-  options?: IRetrieveOptions;
+  options?: IRetrieveOptions<T>;
 }
 
 type IEntityRelationType = 'many-to-one' | 'many-to-many' | 'one-to-many' | 'one-to-one';

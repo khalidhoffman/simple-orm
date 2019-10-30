@@ -18,13 +18,30 @@ export function getQueryRelations<T extends object = any>(entityConstructor: Con
   const entityMetadata = GlobalMetaRegistry.getClassMeta(entityConstructor);
   const relations: IQueryRelation[] = accumulator;
 
+  if ((queryRelationsParams === undefined) || (queryRelationsParams === null)) {
+    debugger
+  }
+
+
+  if (queryRelationsParams === true) {
+    return [];
+  }
+
   Object.keys(queryRelationsParams).forEach(queryParamProperty => {
     const entityPropertyRelationMeta = GlobalMetaRegistry.getPropertyRelationMeta(entityConstructor, queryParamProperty as keyof T);
     if (!entityPropertyRelationMeta) {
       debugger
     }
-    const entityResolvedPropertyName = entityPropertyRelationMeta.options.sql.name || entityPrimaryColumnMetadata.propertyName;
-    const entityPropertyMeta = GlobalMetaRegistry.getPropertyMeta(entityConstructor, entityResolvedPropertyName);
+    const entityPropertySqlName = entityPropertyRelationMeta.options.sql.name;
+    const entityResolvedPropertyMeta = GlobalMetaRegistry.propertyMetaCollection.find(propertyMeta => {
+      return propertyMeta.propertyName === entityPropertyRelationMeta.meta.relation.related.property
+        && propertyMeta.fn === entityPropertyRelationMeta.meta.relation.related.getFn()
+    }) || entityPrimaryColumnMetadata;
+    const entityResolvedPropertyName = entityResolvedPropertyMeta.propertyName;
+    const entityPropertyMeta = GlobalMetaRegistry.getPropertyMeta(entityConstructor, entityResolvedPropertyName as keyof T) || entityPropertyRelationMeta;
+    if (!entityPropertyMeta) {
+      debugger
+    }
     let baseRelation: IQueryRelation = {
       type: entityPropertyRelationMeta.meta.relation.type,
       related: {
@@ -55,7 +72,7 @@ export function getQueryRelations<T extends object = any>(entityConstructor: Con
           const relatedPropertyRelationMeta = GlobalMetaRegistry.getPropertyRelationMeta(relatedEntityConstructor, relatedEntityPropertyName);
           const relatedEntityMeta = GlobalMetaRegistry.getClassMeta(relatedEntityConstructor);
           const relatedResolvedPropertyName = relatedPropertyRelationMeta.options.sql.name || relatedEntityPrimaryMeta.propertyName;
-          const relatedPropertyMeta = GlobalMetaRegistry.getPropertyMeta(relatedEntityConstructor, relatedResolvedPropertyName as keyof T);
+          const relatedPropertyMeta = GlobalMetaRegistry.getPropertyMeta(relatedEntityConstructor, relatedResolvedPropertyName as keyof T) || relatedPropertyRelationMeta;
           const nestedQueryRelations = getQueryRelations(relatedEntityConstructor, queryRelationsParams[queryParamProperty]);
           baseRelation.type = entityPropertyRelationMeta.meta.relation.type;
           baseRelation.related = {
@@ -92,52 +109,60 @@ export function getQueryRelations<T extends object = any>(entityConstructor: Con
 export function queryValueMerge<V extends object = any>(constructor: Constructor<V>, valuesSet: IQueryValues[], relations: IQueryRelationsParams<V>, initValues = {}): V {
   const queryRelations = getQueryRelations(constructor, relations);
   const propertyMetas = GlobalMetaRegistry.getPropertyMetasByConstructor(constructor);
+  const relationMetas = GlobalMetaRegistry.getRelationMetasByConstructor(constructor);
   const mergeResult = Object.assign(new constructor(), initValues);
 
   valuesSet.forEach(values => {
 
-    propertyMetas.forEach((propertyMeta) => {
-      const value = values[propertyMeta.options.sql.alias];
+    propertyMetas.concat(relationMetas).forEach((propertyMeta, propertyMetaIndex) => {
+      const propertySqlName = propertyMeta.options.sql.alias || propertyMeta.options.sql.name;
+      const value = values[propertySqlName];
 
       if (value === undefined) {
         return;
       }
 
-      const queryRelation = queryRelations.find(queryRelation => queryRelation.base.property.meta.propertyName === propertyMeta.propertyName);
+      const queryRelation: IQueryRelation = queryRelations.find(queryRelation => {
+        const queryRelationBasePropertyMeta: IPropertyMeta = queryRelation.base.property.meta;
+        const queryRelationRelationPropertyMeta: IPropertyMeta = queryRelation.base.property.relationMeta;
+
+        return queryRelationBasePropertyMeta.fn === propertyMeta.fn && ((queryRelationBasePropertyMeta.propertyName === propertyMeta.propertyName)
+        || (queryRelationRelationPropertyMeta.propertyName === propertyMeta.propertyName))
+      });
       const propertyRelationMetaType = queryRelation && queryRelation.type;
       const propertyName = propertyMeta.propertyName;
-      const relatedPropertyName = queryRelation && queryRelation.base.property.relationMeta.propertyName || propertyMeta.propertyName;
 
       switch (propertyRelationMetaType) {
         case EntityRelationType.OneToMany: {
-          const arrayValue = mergeResult[relatedPropertyName] || [];
+          const relatedBasePropertyKey: PropertyKey = queryRelation && queryRelation.base.property.relationMeta.propertyName || propertyMeta.propertyName;
+          const arrayValue = mergeResult[relatedBasePropertyKey] || [];
           const relatedConstructor = queryRelation.related.entity.fn;
           const relatedInstance = queryValueMerge(
             relatedConstructor,
             [values],
-            relations[relatedPropertyName],
+            relations[relatedBasePropertyKey],
             { [queryRelation.related.property.meta.propertyName]: value }
           );
           mergeResult[propertyName] = value;
-          mergeResult[relatedPropertyName] = arrayValue.concat(relatedInstance);
+          mergeResult[relatedBasePropertyKey] = arrayValue.concat(relatedInstance);
           break;
         }
         case EntityRelationType.ManyToMany:
           break;
-        case EntityRelationType.ManyToOne:
-        case EntityRelationType.OneToOne: {
+        case EntityRelationType.ManyToOne: {
+          const relatedPropertyKey: PropertyKey = queryRelation && queryRelation.related.property.meta.propertyName || propertyMeta.propertyName;
           const relatedConstructor = queryRelation.related.entity.fn;
-          mergeResult[propertyName] = value;
-          mergeResult[relatedPropertyName] = queryValueMerge(
+          mergeResult[propertyName] = queryValueMerge(
             relatedConstructor,
             [values],
-            relations[relatedPropertyName],
-            { [queryRelation.related.property.meta.propertyName]: value }
+            relations[propertyName],
+            { [relatedPropertyKey]: value }
           );
           break;
         }
         default: {
-          mergeResult[relatedPropertyName] = value;
+          const relatedBasePropertyKey: PropertyKey = queryRelation && queryRelation.base.property.relationMeta.propertyName || propertyMeta.propertyName;
+          mergeResult[relatedBasePropertyKey] = value;
         }
       }
     });

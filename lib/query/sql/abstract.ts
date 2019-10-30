@@ -4,8 +4,8 @@ import * as mysql from 'mysql';
 import { logger }       from '../../logger';
 import { MetaRegistry } from '../../meta-registry';
 
-import { AbstractQuery }      from '../base';
-import { EntityRelationType } from '../../entity-relation';
+import { AbstractQuery }                    from '../base';
+import { EntityPersistenceOperationsGraph } from '../../entity-relation-graph';
 
 const knex = require('knex');
 const sql = knex({
@@ -29,12 +29,14 @@ export abstract class AbstractSqlQuery<T = any> extends AbstractQuery {
   entitySqlRef: IEntitySqlRef;
   entityPropertiesMetadata: IPropertyMeta[];
   entityPrimaryColumnMetadata: IPropertyMeta;
+  entityPersistenceGraph: EntityPersistenceOperationsGraph<T>;
 
-  constructor(protected Entity: Constructor<T>, protected queryParams: IQueryParams) {
+  constructor(protected Entity: Constructor<T>, protected queryParams: IQueryParams<T>) {
     super(Entity, queryParams);
     const entitySqlRef = getEntitySqlRef(this.entityMetadata);
     const entityPrimaryColumnMetadata = this.metaRegistry.getIdentifierPropertyMeta(this.Entity);
 
+    this.entityPersistenceGraph = new EntityPersistenceOperationsGraph(Entity, queryParams.options.relations);
     this.entitySqlRef = entitySqlRef;
     this.entityPrimaryColumnMetadata = entityPrimaryColumnMetadata;
     this.store.update({
@@ -62,8 +64,22 @@ export abstract class AbstractSqlQuery<T = any> extends AbstractQuery {
     }
   }
 
-  getEntityPropertySqlRef<Key extends string, Entity>(entityPropertyMetadata: IPropertyMeta, entityMetadata: IClassMeta = this.entityMetadata, options?: { disableAlias: boolean }): IEntityPropertyAliasSqlRef<Key, Entity> {
-    if (options && options.disableAlias) {
+  getAllPrimaryKeyMeta(): IPropertyMeta[] {
+    return this.entityPersistenceGraph.getPrimaryKeyMeta();
+  }
+
+  getAllScopedKeyMeta(): IPropertyMeta[] {
+    return this.entityPersistenceGraph.getScopedKeyMeta();
+  }
+
+
+  getPropertySqlRef<Key extends string, Entity>(
+    entityPropertyMetadata: IPropertyMeta,
+    entityMetadata: IClassMeta = this.entityMetadata,
+    options?: { disableAlias: boolean }
+  ): IEntityPropertyAliasSqlRef<Key, Entity> {
+
+    if (options && options.disableAlias || !entityPropertyMetadata.options.sql.alias) {
       return this.sql.ref(entityPropertyMetadata.options.sql.name).withSchema(entityMetadata.tableName);
     }
     return this.sql.ref(entityPropertyMetadata.options.sql.name).as(entityPropertyMetadata.options.sql.alias).withSchema(entityMetadata.tableName);

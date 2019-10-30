@@ -179,7 +179,7 @@ export function ManyToOne<T, R>(typeFunction: (type?: any) => Constructor<T>, in
       type: undefined,
       sql: {
         // name: propertyName,
-        // alias: `${object.constructor.name}_${propertyName}`,
+        alias: `${object.constructor.name}_${propertyName}`,
         ...columnOptions
       },
       typeFunction,
@@ -187,6 +187,17 @@ export function ManyToOne<T, R>(typeFunction: (type?: any) => Constructor<T>, in
       ...columnOptions
     };
     const type = options.type;
+
+    // GlobalPropertyMetaCollection.push(new PropertyMeta({
+    //   fn: object.constructor,
+    //   className: object.constructor.name,
+    //   propertyName,
+    //   object,
+    //   type,
+    //   options,
+    //   columnOptions,
+    //   meta: {}
+    // }));
 
     GlobalPropertyMetaCollection.push(new PropertyRelationMeta({
       fn: object.constructor,
@@ -220,7 +231,7 @@ export function OneToMany<T, R>(typeFunction: (type?: any) => Constructor<T>, in
       type: undefined,
       sql: {
         // name: propertyName,
-        // alias: `${object.constructor.name}_${propertyName}`,
+        alias: `${object.constructor.name}_${propertyName}`,
         ...columnOptions
       },
       typeFunction,
@@ -228,6 +239,17 @@ export function OneToMany<T, R>(typeFunction: (type?: any) => Constructor<T>, in
       ...columnOptions
     };
     const type = options.type;
+
+    // GlobalPropertyMetaCollection.push(new PropertyMeta({
+    //   fn: object.constructor,
+    //   className: object.constructor.name,
+    //   propertyName,
+    //   object,
+    //   type,
+    //   options,
+    //   columnOptions,
+    //   meta: {}
+    // }));
 
     GlobalPropertyMetaCollection.push(new PropertyRelationMeta({
       fn: object.constructor,

@@ -66,7 +66,9 @@ export class ATestEntity {
   })
   name: string;
 
-  @ManyToOne(type => ATestParentEntity, ATestParentEntity => ATestParentEntity.children, { name: 'includedId' })
+  @ManyToOne(type => ATestParentEntity, ATestParentEntity => ATestParentEntity.children, {
+    name: 'parentId'
+  })
   parent: ATestParentEntity;
 
   @ManyToOne(type => ATestGrandParentEntity, ATestGrandParentEntity => ATestGrandParentEntity.grandChildren, { name: 'grandParentId' })

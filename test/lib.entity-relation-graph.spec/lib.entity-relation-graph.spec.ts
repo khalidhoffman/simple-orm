@@ -17,6 +17,6 @@ describe('BaseEntityRelationGraph', function () {
       id: -1
     });
 
-    relationGraph.propertyMetaGraph.should.be.ok;
+    relationGraph.relationGraph.should.be.ok;
   })
 });
