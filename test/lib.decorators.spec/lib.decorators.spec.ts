@@ -1,7 +1,7 @@
 import { SimpleORM }   from "../../lib/core";
 import { ATestEntity } from "./assets";
 
-describe("[decorators]", function () {
+describe("/lib/decorators", function () {
 
   describe("Entity()", function () {
 

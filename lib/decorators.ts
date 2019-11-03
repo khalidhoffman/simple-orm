@@ -4,7 +4,7 @@ import {
   PropertyMeta,
   PropertyRelationMeta
 }                             from './meta';
-import { EntityRelationType } from './entity-relation';
+import { EntityRelationType } from './graph/entity-relation';
 import {
   GlobalClassMetaCollection,
   GlobalPropertyMetaCollection
@@ -188,17 +188,6 @@ export function ManyToOne<T, R>(typeFunction: (type?: any) => Constructor<T>, in
     };
     const type = options.type;
 
-    // GlobalPropertyMetaCollection.push(new PropertyMeta({
-    //   fn: object.constructor,
-    //   className: object.constructor.name,
-    //   propertyName,
-    //   object,
-    //   type,
-    //   options,
-    //   columnOptions,
-    //   meta: {}
-    // }));
-
     GlobalPropertyMetaCollection.push(new PropertyRelationMeta({
       fn: object.constructor,
       className: object.constructor.name,
@@ -239,17 +228,8 @@ export function OneToMany<T, R>(typeFunction: (type?: any) => Constructor<T>, in
       ...columnOptions
     };
     const type = options.type;
-
-    // GlobalPropertyMetaCollection.push(new PropertyMeta({
-    //   fn: object.constructor,
-    //   className: object.constructor.name,
-    //   propertyName,
-    //   object,
-    //   type,
-    //   options,
-    //   columnOptions,
-    //   meta: {}
-    // }));
+    const baseFn = () => object.constructor;
+    const relatedFn = typeFunction;
 
     GlobalPropertyMetaCollection.push(new PropertyRelationMeta({
       fn: object.constructor,
@@ -263,11 +243,11 @@ export function OneToMany<T, R>(typeFunction: (type?: any) => Constructor<T>, in
         relation: {
           type: EntityRelationType.OneToMany,
           base: {
-            getFn: () => object.constructor,
+            getFn: baseFn,
             property: propertyName
           },
           related: {
-            getFn: typeFunction,
+            getFn: relatedFn,
             property: undefined
           }
         }

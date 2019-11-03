@@ -4,7 +4,11 @@ import {
   GlobalClassMetaCollection,
   GlobalPropertyMetaCollection
 }                       from './meta-collection';
-import { SqlReadQuery } from './query';
+import {
+  SqlCreateQuery,
+  SqlReadQuery,
+  SqlUpdateQuery
+} from './query';
 
 /**
  * TODO: complete following sub-tasks
@@ -21,8 +25,20 @@ export class SimpleORM {
     (global as any).GLOBAL_MYSQL_CONN = connection;
   }
 
+  async insert<T extends object>(Entity: Constructor<T>, values: DeepPartial<T>, options?: ISaveOptions<T>): Promise<T> {
+    const query = new SqlCreateQuery<T>(Entity, { entity: values, options });
+
+    return query.execute();
+  }
+
   async retrieve<T>(Entity: Constructor<T>, identifier: number, options?: IRetrieveOptions<T>): Promise<T> {
-    const query = new SqlReadQuery<T>(Entity, { identifier, options });
+    const query = new SqlReadQuery<T>(Entity, { entity: identifier, options });
+
+    return query.execute();
+  }
+
+  async update<T extends object>(Entity: Constructor<T>, values: DeepPartial<T>, options?: ISaveOptions<T>): Promise<T> {
+    const query = new SqlUpdateQuery<T>(Entity, { entity: values, options });
 
     return query.execute();
   }

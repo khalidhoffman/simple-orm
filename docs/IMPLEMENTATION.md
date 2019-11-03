@@ -3,11 +3,23 @@
 ## Workflow
 
 1. Metadata read from decorator callbacks
-  * build graph of all specified entities and nested entities that is superimposed with meta
+    * build graph of all specified entities and nested entities that is superimposed with meta
 2. Retrieve saved entity from active entity
-  * uses metadata to determine how to retrieve entity 
+    * uses metadata to determine how to retrieve entity 
 3. Determine diff of saved entity and active entity 
 4. Generate CRUD operations from diff
+    1. Create
+        - sql
+            - `INSERT INTO ... VALUES ...;`
+    1. Read
+        - sql
+            - mvp complete
+    1. Update
+        - sql
+            - `UPDATE ... SET (a=b) WHERE ...`
+    1. Delete
+        - sql
+            - `DELETE FROM ... WHERE ...`
 5. Execute CRUD operations from diff
 
 | abstract | psuedo (`A -(C)> B`) | sql | nosql

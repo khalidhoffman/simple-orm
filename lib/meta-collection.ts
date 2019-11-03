@@ -1,7 +1,8 @@
 import {
   PropertyMeta,
   PropertyRelationMeta
-} from './meta';
+}                             from './meta';
+import { EntityRelationType } from './graph/entity-relation';
 
 export class PropertyMetaCollection extends Array<IPropertyMeta> {
 

@@ -1,11 +1,11 @@
-import { BaseEntityRelationGraph } from '../../lib/entity-relation-graph';
-import { ATestGrandParentEntity }  from './assets';
+import { ATestGrandParentEntity } from './assets';
+import { EntityRelationGraph }    from '../../lib/graph/entity-relation-graph';
 
 describe('BaseEntityRelationGraph', function () {
 
   it("builds a graph of an entity's relations based on a dict of values", function(){
 
-    const relationGraph = new BaseEntityRelationGraph(ATestGrandParentEntity, {
+    const relationGraph = new EntityRelationGraph(ATestGrandParentEntity, {
       children: [{
         id: -2,
         children: [{

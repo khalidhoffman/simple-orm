@@ -4,25 +4,31 @@ import { MetaRegistry } from '../meta-registry';
 export abstract class AbstractQuery<T = any> {
   store: Store = new Store();
   metaRegistry: MetaRegistry = new MetaRegistry();
+
+  Entity: Constructor<T>;
   entityMetadata: IClassMeta;
   entityPropertiesMetadata: IPropertyMeta[];
   entityRelationsMetadata: IPropertyMeta[];
   relations: IRelationalQueryPartial<T>;
+  queryParams: IQueryParams;
 
   abstract execute(): Promise<T>
 
-  protected constructor(protected Entity: Constructor<T>, protected queryParams: IQueryParams) {
-    this.relations = queryParams.options.relations;
+  protected constructor(Entity: Constructor<T>, queryParams: IQueryParams) {
+    this.Entity = Entity;
     this.entityMetadata = this.metaRegistry.getClassMeta(Entity);
     this.entityPropertiesMetadata = this.metaRegistry.getPropertyMetasByConstructor(Entity);
     this.entityRelationsMetadata = this.metaRegistry.getRelationMetasByConstructor(Entity);
     this.queryParams = {
+      ...queryParams,
       options: {
-        relations: {},
-        ...queryParams.options
-      },
-      ...queryParams
+        ...queryParams && queryParams.options,
+        relations: {
+          ...queryParams && queryParams.options && queryParams.options.relations,
+        }
+      }
     };
+    this.relations = this.queryParams.options.relations;
 
     this.store.update({
       Entity,

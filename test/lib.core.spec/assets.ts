@@ -21,7 +21,7 @@ export class ATestGrandParentEntity {
   @OneToMany(type => ATestEntity, ATestEntity => ATestEntity.grandParent)
   grandChildren: ATestEntity[];
 
-  constructor(props?: Partial<ATestEntity>) {
+  constructor(props?: Partial<ATestGrandParentEntity>) {
     Object.assign(this, props);
   }
 }
@@ -40,7 +40,7 @@ export class ATestParentEntity {
   @ManyToOne(type => ATestGrandParentEntity, ATestGrandParentEntity => ATestGrandParentEntity.children, { name: 'parentId' })
   parent: ATestGrandParentEntity;
 
-  constructor(props?: Partial<ATestEntity>) {
+  constructor(props?: Partial<ATestParentEntity>) {
     Object.assign(this, props);
   }
 }

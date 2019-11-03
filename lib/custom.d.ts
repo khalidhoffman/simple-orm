@@ -1,3 +1,5 @@
+import Deep = Chai.Deep;
+
 interface Constructor<ReturnType = any, Arguments extends Array<any> = any[]> extends Function {
   new(...args: Arguments): ReturnType
 
@@ -56,13 +58,15 @@ interface IPropertyMetaOptions {
   inverseSide?: Function;
 }
 
+interface IPropertyMetaExtra {
+  relation?: IEntityRelation;
+}
+
 interface IPropertyMeta extends IMeta {
   propertyName: PropertyKey;
   options: IPropertyMetaOptions;
   type?: IPropertyMetaType;
-  meta?: {
-    relation?: IEntityRelation;
-  }
+  meta?: IPropertyMetaExtra;
 }
 
 interface IClassMeta extends IMeta {
@@ -74,8 +78,8 @@ interface IClassMeta extends IMeta {
  * @see {@link https://gitlab.weblee.io/webleedev/simple-orm/issues/1}
  */
 interface IQueryParams<T = any> {
-  identifier: number
-  options?: IRetrieveOptions<T>;
+  entity: number | DeepPartial<T>;
+  options?: Partial<IRetrieveOptions<T> & ISaveOptions<T>>;
 }
 
 type IEntityRelationType = 'many-to-one' | 'many-to-many' | 'one-to-many' | 'one-to-one';
@@ -106,6 +110,10 @@ type IRelationalQueryPartial<T> = { [K in keyof T]?: IRelationalQueryPartial<T[K
 
 interface IRetrieveOptions<T = any> {
   relations: IRelationalQueryPartial<T>;
+}
+
+interface ISaveOptions<T = any> {
+
 }
 
 type IQueryRelationsParams<T> = IRelationalQueryPartial<T>;
@@ -140,3 +148,29 @@ interface IQueryRelation {
 }
 
 type IQueryValues<T = any> = { [key: string]: T };
+
+type IEntityPropertyConstraint = any;
+
+
+type IGraph = any;
+
+interface IEntityRelationGraphNode<T = any> {
+  graph: IGraph;
+  fn: Constructor;
+  relationMeta: IPropertyMeta[];
+  propertyMeta: IPropertyMeta[];
+  constraints: IEntityPropertyConstraint[]
+  children?: IEntityRelationGraphNode[] | IEntityRelationGraphNode;
+  value: T;
+}
+
+
+/**
+ * @deprecated
+ */
+type TypedDict<T, Result = T> = { [k in keyof T]: Result extends Partial<T> ? Result[k] : Result };
+
+/**
+ * @deprecated
+ */
+type IPropertyMetaDict<T = any> = TypedDict<T, IEntityRelationGraphNode>;

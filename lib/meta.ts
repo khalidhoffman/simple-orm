@@ -27,7 +27,7 @@ export class PropertyRelationMeta implements IPropertyMeta {
   options: any;
   typeOrOptions?: any;
   type: IPropertyMetaType;
-  meta: {};
+  meta: IPropertyMetaExtra;
 
   constructor(params: Partial<IPropertyMeta>) {
     Object.assign(this, { meta: {} }, params);
