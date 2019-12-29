@@ -4,10 +4,7 @@ import * as mysql from 'mysql';
 import { logger }       from '../../logger';
 import { MetaRegistry } from '../../meta-registry';
 
-import { AbstractQuery }       from '../base';
-import {
-  EntityPersistenceOperationsGraphNode
-}                              from '../../graph/entity-relation-graph-node';
+import { AbstractQuery }       from '../abstract';
 import { EntityRelationGraph } from '../../graph/entity-relation-graph';
 
 const knex = require('knex');
@@ -83,6 +80,7 @@ export abstract class AbstractSqlQuery<T = any> extends AbstractQuery {
     }
     return this.sql.ref(entityPropertyMetadata.options.sql.name).as(entityPropertyMetadata.options.sql.alias).withSchema(entityMetadata.tableName);
   }
+
   getEntitySqlRef(entityMetadata: IClassMeta): IEntitySqlRef {
     return sql.table(entityMetadata.tableName);
   }
