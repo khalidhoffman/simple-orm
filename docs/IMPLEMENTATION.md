@@ -31,5 +31,5 @@
 
 
 ## TODO
-- [ ] implement way to fetch data via entity meta
-- [ ] implement way to save data
+- [x] implement way to fetch data via entity meta
+- [x] implement way to save data
