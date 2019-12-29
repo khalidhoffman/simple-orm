@@ -1,4 +1,5 @@
-import Deep = Chai.Deep;
+type Keys<T> = keyof T;
+type Values<T> = T[Keys<T>];
 
 interface Constructor<ReturnType = any, Arguments extends Array<any> = any[]> extends Function {
   new(...args: Arguments): ReturnType

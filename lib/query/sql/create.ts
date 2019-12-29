@@ -22,8 +22,6 @@ type InsertSqlResult = any & {
   changedRows: number;
   protocol41: boolean;
 };
-type Keys<T> = keyof T;
-type Values<T> = T[Keys<T>]; //  "myValue1" | "myValue2"
 type Path = PropertyKey[];
 
 interface IInsertOperation {

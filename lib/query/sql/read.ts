@@ -1,4 +1,3 @@
-import { sortBy } from 'lodash';
 import * as Knex from 'knex';
 
 import {
@@ -41,7 +40,7 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
    * @returns {any[]}
    */
 
-  applySelects(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
+  protected applySelects(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
     const relationalSelects = GlobalMetaRegistry.getQueryRelations(this.Entity, this.relations).reduce((selects, relationMeta) => {
       return selects.concat([
           this.getPropertySqlRef(relationMeta.base.property.meta, relationMeta.base.entity),
@@ -67,7 +66,7 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
     return sqlQuery.select(...uniqueSelects);
   }
 
-  applyJoins(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
+  protected applyJoins(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
     const queryRelations: IQueryRelation[] = GlobalMetaRegistry.getQueryRelations(this.Entity, this.relations);
     let tableName: string;
     let baseProperty: IEntityPropertyAliasSqlRef<string, T>;
@@ -96,7 +95,7 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
     return sqlQuery;
   }
 
-  applyWhere(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
+  protected applyWhere(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
     const whereParamsCol: IWhereParam[] = [];
 
     this.entityPersistenceGraph.relationGraph.forEachMeta('property', (node: EntityRelationGraphNode, propertyMeta: IPropertyMeta, path: PropertyKey[]) => {
