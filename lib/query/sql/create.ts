@@ -5,11 +5,11 @@ import {
   AbstractSqlQuery,
   IEntitySqlRef
 }                             from './abstract';
-import { GlobalMetaRegistry } from '../../meta-registry';
+import { GlobalMetaRegistry } from '../../metadata/meta-registry';
 import {
   uuidGen,
   queryValueMerge
-} from '../../utils';
+}                             from '../../utils';
 import { GraphNode }          from '../../graph/graph-node';
 
 type InsertSqlResult = any & {

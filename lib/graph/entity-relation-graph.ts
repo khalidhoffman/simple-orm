@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 
-import { GlobalClassMetaCollection } from '../meta-collection';
-import { GlobalMetaRegistry }        from '../meta-registry';
+import { GlobalClassMetaCollection } from '../metadata/meta-collection';
+import { GlobalMetaRegistry }        from '../metadata/meta-registry';
 import { EntityRelationGraphNode }   from './entity-relation-graph-node';
 
 const get = _.get;

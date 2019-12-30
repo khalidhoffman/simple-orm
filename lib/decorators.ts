@@ -3,12 +3,12 @@ import 'reflect-metadata';
 import {
   PropertyMeta,
   PropertyRelationMeta
-}                             from './meta';
+}                             from './metadata/meta';
 import { EntityRelationType } from './graph/entity-relation';
 import {
   GlobalClassMetaCollection,
   GlobalPropertyMetaCollection
-}                             from './meta-collection';
+}                             from './metadata/meta-collection';
 
 export function Column(columnOptions) {
 

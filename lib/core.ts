@@ -3,7 +3,7 @@ import * as mysql from 'mysql';
 import {
   GlobalClassMetaCollection,
   GlobalPropertyMetaCollection
-}                       from './meta-collection';
+} from './metadata/meta-collection';
 import {
   SqlCreateQuery,
   SqlReadQuery,

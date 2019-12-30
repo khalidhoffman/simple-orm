@@ -2,7 +2,7 @@ import * as Knex  from 'knex';
 import * as mysql from 'mysql';
 
 import { logger }       from '../../logger';
-import { MetaRegistry } from '../../meta-registry';
+import { MetaRegistry } from '../../metadata/meta-registry';
 
 import { AbstractQuery }       from '../abstract';
 import { EntityRelationGraph } from '../../graph/entity-relation-graph';

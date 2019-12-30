@@ -1,6 +1,5 @@
-import { GlobalPropertyMetaCollection } from './meta-collection';
 import { EntityRelationType }           from './graph/entity-relation';
-import { GlobalMetaRegistry }           from './meta-registry';
+import { GlobalMetaRegistry }           from './metadata/meta-registry';
 
 export function isString(val: any): val is string {
   return typeof val === 'string' || val instanceof String;

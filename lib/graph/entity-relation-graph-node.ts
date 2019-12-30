@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-import { GlobalPropertyMetaCollection } from '../meta-collection';
+import { GlobalPropertyMetaCollection } from '../metadata/meta-collection';
 import {
   GLOBAL_GRAPH,
   GraphNode

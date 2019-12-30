@@ -4,8 +4,8 @@ import {
   GlobalPropertyMetaCollection,
   PropertyMetaCollection
 }                                   from './meta-collection';
-import { EntityRelationType }       from './graph/entity-relation';
-import { getInverseFnPropertyName } from './utils';
+import { EntityRelationType }       from '../graph/entity-relation';
+import { getInverseFnPropertyName } from '../utils';
 
 export class MetaRegistry {
   classMetaCollection: ClassMetaCollection = GlobalClassMetaCollection;

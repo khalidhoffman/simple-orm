@@ -2,8 +2,6 @@ import {
   PropertyMeta,
   PropertyRelationMeta
 }                             from './meta';
-import { EntityRelationType } from './graph/entity-relation';
-
 export class PropertyMetaCollection extends Array<IPropertyMeta> {
 
   getDefaultPropertyMeta<T>(constructor: Constructor<T>, propertyName: keyof T): IPropertyMeta {

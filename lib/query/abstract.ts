@@ -1,5 +1,5 @@
 import Store            from 'simple-store';
-import { MetaRegistry } from '../meta-registry';
+import { MetaRegistry } from '../metadata/meta-registry';
 
 export abstract class AbstractQuery<T = any> {
   store: Store = new Store();

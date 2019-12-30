@@ -9,8 +9,8 @@ import {
 import { EntityRelationType }        from '../../graph/entity-relation';
 import { queryValueMerge }           from '../../utils';
 import { EntityRelationGraphNode }   from '../../graph/entity-relation-graph-node';
-import { GlobalClassMetaCollection } from '../../meta-collection';
-import { GlobalMetaRegistry }        from '../../meta-registry';
+import { GlobalClassMetaCollection } from '../../metadata/meta-collection';
+import { GlobalMetaRegistry }        from '../../metadata/meta-registry';
 
 type IWhereParamValueSqlRef = IEntityPropertyAliasSqlRef<any, any> | any;
 type IWhereParamsPropertySqlRef = IEntityPropertyAliasSqlRef<any, any>;
