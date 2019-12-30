@@ -96,12 +96,12 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
   }
 
   protected applyWhere(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
-    const whereParamsCol: IWhereParam[] = [];
+    const whereParamsCollection: IWhereParam[] = [];
 
     this.entityPersistenceGraph.relationGraph.forEachMeta('property', (node: EntityRelationGraphNode, propertyMeta: IPropertyMeta, path: PropertyKey[]) => {
       const classMeta = GlobalClassMetaCollection.getClassMeta(propertyMeta.fn);
       const whereParamValue = node.value === undefined ? propertyMeta.options.sql.scope : node.value;
-      let whereParams = whereParamsCol.find(whereParams => {
+      let whereParams = whereParamsCollection.find(whereParams => {
         return whereParams.property.meta === propertyMeta;
       });
 
@@ -121,7 +121,7 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
           }
         };
 
-        whereParamsCol.push(whereParams);
+        whereParamsCollection.push(whereParams);
       } else {
 
         whereParams.value.sql = [whereParamValue].concat(whereParams.value.sql);
@@ -130,7 +130,7 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
 
     });
 
-    whereParamsCol.forEach(whereParams => {
+    whereParamsCollection.forEach(whereParams => {
       if (Array.isArray(whereParams.value.sql)) {
 
         sqlQuery = sqlQuery.where(whereParams.property.sql, 'IN', `(${whereParams.value.sql.join(',')})`);
