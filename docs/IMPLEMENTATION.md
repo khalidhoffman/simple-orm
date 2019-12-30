@@ -4,21 +4,37 @@
 
 ```mermaid
 classDiagram
-class EntityDecorator
-class EntityDecoratorMetadataGraph
+class MetadataDecorator
+class PropertyMetadataDecorator
+class EntityPropertyMetadata {
+    +constructor::Entity entity
+}
+class EntityMetadata {
+    +constructor::Entity entity
+    +EntityPropertyMetadata[] properties
+}
+class EntityMetadataGraph
 class EntityRelationGraph
 class EntityQueryGraph
+class Entity
 class Graph
 class AbstractQuery
 class AbstractSqlQuery
 class SqlReadQuery
 
 EntityRelationGraph --o Graph
-EntityDecoratorMetadataGraph --o Graph
+EntityMetadataGraph --o Graph
 EntityQueryGraph --o Graph
-AbstractSqlQuery "*" --* "1" EntityRelationGraph
-AbstractSqlQuery "1" --* "1" EntityDecoratorMetadataGraph
-AbstractSqlQuery "1" --* "1" EntityQueryGraph
+EntityQueryGraph "1" --* "1" Entity
+Entity --> MetadataDecorator: calls
+AbstractQuery "*" --* "1" EntityRelationGraph
+AbstractQuery "*" --* "1" EntityMetadataGraph
+EntityMetadata "1" --* "*" EntityPropertyMetadata
+PropertyMetadataDecorator --o MetadataDecorator
+MetadataDecorator --> EntityMetadata: creates
+PropertyMetadataDecorator --> EntityPropertyMetadata: creates
+EntityMetadataGraph "1" --* "*" EntityMetadata
+AbstractQuery "1" --* "1" EntityQueryGraph
 AbstractSqlQuery --o AbstractQuery
 SqlReadQuery --o AbstractSqlQuery 
 ```
@@ -28,22 +44,22 @@ SqlReadQuery --o AbstractSqlQuery
 sequenceDiagram
 
 participant Entity 
-participant EntityDecorator 
+participant MetadataDecorator 
 participant EntityDecoratorMetadata
-participant EntityDecoratorMetadataGraph
+participant EntityMetadataGraph
 
-EntityDecoratorMetadataGraph-->>EntityDecorator: executes
-EntityDecorator -->> Entity: reads
-EntityDecorator -->> EntityDecoratorMetadata: returns
-EntityDecoratorMetadataGraph -->> EntityDecoratorMetadata: saves
+MetadataDecorator -->> Entity: reads
+MetadataDecorator -->> EntityDecoratorMetadata: creates
+EntityMetadataGraph -->> EntityDecoratorMetadata: reads
 ```
 
 #### query graph creation 
 ```mermaid
 sequenceDiagram
 
-participant Entity 
-participant EntityDecoratorMetadataGraph
+participant Query
+participant QueryGraph
+participant EntityMetadataGraph
 
 ```
 
