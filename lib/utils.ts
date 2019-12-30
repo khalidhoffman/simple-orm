@@ -5,6 +5,9 @@ export function isString(val: any): val is string {
   return typeof val === 'string' || val instanceof String;
 }
 
+export function isSameMeta(metaA: IMeta, meta2: IMeta) {
+  return metaA === meta2;
+}
 
 export function getInverseFnPropertyName(fn: Function) {
   const fnText = fn.toString();

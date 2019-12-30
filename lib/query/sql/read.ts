@@ -7,7 +7,7 @@ import {
   IEntitySqlRef
 }                                    from './abstract';
 import { EntityRelationType }        from '../../graph/entity-relation';
-import { queryValueMerge }           from '../../utils';
+import * as utils           from '../../utils';
 import { EntityRelationGraphNode }   from '../../graph/entity-relation-graph-node';
 import { GlobalClassMetaCollection } from '../../metadata/meta-collection';
 import { GlobalMetaRegistry }        from '../../metadata/meta-registry';
@@ -102,7 +102,7 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
       const classMeta = GlobalClassMetaCollection.getClassMeta(propertyMeta.fn);
       const whereParamValue = node.value === undefined ? propertyMeta.options.sql.scope : node.value;
       let whereParams = whereParamsCollection.find(whereParams => {
-        return whereParams.property.meta === propertyMeta;
+        return utils.isSameMeta(whereParams.property.meta, propertyMeta);
       });
 
       if (!whereParamValue || !(propertyMeta.options.sql.primaryKey || propertyMeta.options.sql.scope)) {
@@ -157,7 +157,7 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
     const persistedEntityValuesQuery = this.getQuery();
     const results = await this.executeSqlQuery(persistedEntityValuesQuery);
 
-    return queryValueMerge(this.Entity, results, this.relations) as T;
+    return utils.queryValueMerge(this.Entity, results, this.relations) as T;
   }
 
   async execute(): Promise<T> {
