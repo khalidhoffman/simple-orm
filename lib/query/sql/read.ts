@@ -101,11 +101,12 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
     this.entityPersistenceGraph.relationGraph.forEachMeta('property', (node: EntityRelationGraphNode, propertyMeta: IPropertyMeta, path: PropertyKey[]) => {
       const classMeta = GlobalClassMetaCollection.getClassMeta(propertyMeta.fn);
       const whereParamValue = node.value === undefined ? propertyMeta.options.sql.scope : node.value;
-      let whereParams = whereParamsCollection.find(whereParams => {
+      const formattedWhereParamValue = typeof whereParamValue === 'object' ? whereParamValue[propertyMeta.propertyName] : whereParamValue;
+      let whereParams: IWhereParam = whereParamsCollection.find(whereParams => {
         return utils.isSameMeta(whereParams.property.meta, propertyMeta);
       });
 
-      if (!whereParamValue || !(propertyMeta.options.sql.primaryKey || propertyMeta.options.sql.scope)) {
+      if (!formattedWhereParamValue || !(propertyMeta.options.sql.primaryKey || propertyMeta.options.sql.scope)) {
         return;
       }
 
@@ -116,16 +117,16 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
             sql: this.getPropertySqlRef(propertyMeta, classMeta, { disableAlias: true })
           },
           value: {
-            raw: whereParamValue,
-            sql: whereParamValue
+            raw: formattedWhereParamValue,
+            sql: formattedWhereParamValue
           }
         };
 
         whereParamsCollection.push(whereParams);
       } else {
 
-        whereParams.value.sql = [whereParamValue].concat(whereParams.value.sql);
-        whereParams.value.raw = [whereParamValue].concat(whereParams.value.raw);
+        whereParams.value.sql = [formattedWhereParamValue].concat(whereParams.value.sql);
+        whereParams.value.raw = [formattedWhereParamValue].concat(whereParams.value.raw);
       }
 
     });

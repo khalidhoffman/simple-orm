@@ -31,7 +31,7 @@ export class SimpleORM {
     return query.execute();
   }
 
-  async retrieve<T>(Entity: Constructor<T>, identifier: number, options?: IRetrieveOptions<T>): Promise<T> {
+  async retrieve<T>(Entity: Constructor<T>, identifier: EntityIdentifier<T>, options?: IRetrieveOptions<T>): Promise<T> {
     const query = new SqlReadQuery<T>(Entity, { entity: identifier, options });
 
     return query.execute();

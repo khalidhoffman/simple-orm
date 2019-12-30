@@ -20,6 +20,9 @@ interface IMetaParams {
   options?: any;
 }
 
+type EntityValueDict<T> = DeepPartial<T>;
+type EntityIdentifier<T> = number | EntityValueDict<T>;
+
 type IMeta = { [key: string]: any; } & IMetaParams;
 
 type IPropertyMetaType = 'string' | string | Constructor;
@@ -79,7 +82,7 @@ interface IClassMeta extends IMeta {
  * @see {@link https://gitlab.weblee.io/webleedev/simple-orm/issues/1}
  */
 interface IQueryParams<T = any> {
-  entity: number | DeepPartial<T>;
+  entity: EntityIdentifier<T>;
   options?: Partial<IRetrieveOptions<T> & ISaveOptions<T>>;
 }
 

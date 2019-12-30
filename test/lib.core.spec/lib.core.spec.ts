@@ -47,7 +47,7 @@ describe("/lib/core", function () {
 
       it("should return instance with mapped values populated from database", async function () {
         const orm = new SimpleORM(connection);
-        const result: ATestEntity = await orm.retrieve(ATestEntity, 1, {
+        const result: ATestEntity = await orm.retrieve(ATestEntity, { id: 1 }, {
           relations: {
             parent: true
           }
@@ -60,7 +60,7 @@ describe("/lib/core", function () {
 
       it("should return a value for related entities when \"Many-To-One\" relation is used", async function () {
         const orm = new SimpleORM(connection);
-        const result: ATestEntity = await orm.retrieve(ATestEntity, 2, {
+        const result: ATestEntity = await orm.retrieve(ATestEntity, { id: 2 }, {
           relations: {
             parent: {
               parent: true
@@ -77,7 +77,7 @@ describe("/lib/core", function () {
 
       it("should return a value for related entities when \"One-To-Many\" relation is used", async function () {
         const orm = new SimpleORM(connection);
-        const result: ATestParentEntity = await orm.retrieve(ATestParentEntity, 789, {
+        const result: ATestParentEntity = await orm.retrieve(ATestParentEntity, { id: 789 }, {
           relations: {
             children: true,
             parent: true
