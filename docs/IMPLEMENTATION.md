@@ -1,5 +1,52 @@
 # Implementation
 
+## Diagrams
+
+```mermaid
+classDiagram
+class EntityDecorator
+class EntityDecoratorMetadataGraph
+class EntityRelationGraph
+class EntityQueryGraph
+class Graph
+class AbstractQuery
+class AbstractSqlQuery
+class SqlReadQuery
+
+EntityRelationGraph --o Graph
+EntityDecoratorMetadataGraph --o Graph
+EntityQueryGraph --o Graph
+AbstractSqlQuery "*" --* "1" EntityRelationGraph
+AbstractSqlQuery "1" --* "1" EntityDecoratorMetadataGraph
+AbstractSqlQuery "1" --* "1" EntityQueryGraph
+AbstractSqlQuery --o AbstractQuery
+SqlReadQuery --o AbstractSqlQuery 
+```
+
+#### metadata graph creation 
+```mermaid
+sequenceDiagram
+
+participant Entity 
+participant EntityDecorator 
+participant EntityDecoratorMetadata
+participant EntityDecoratorMetadataGraph
+
+EntityDecoratorMetadataGraph-->>EntityDecorator: executes
+EntityDecorator -->> Entity: reads
+EntityDecorator -->> EntityDecoratorMetadata: returns
+EntityDecoratorMetadataGraph -->> EntityDecoratorMetadata: saves
+```
+
+#### query graph creation 
+```mermaid
+sequenceDiagram
+
+participant Entity 
+participant EntityDecoratorMetadataGraph
+
+```
+
 ## Workflow
 
 1. Metadata read from decorator callbacks
@@ -13,6 +60,7 @@
             - `INSERT INTO ... VALUES ...;`
     1. Read
         - sql
+            - `SELECT ... FROM ... WHERE ...`
             - mvp complete
     1. Update
         - sql
