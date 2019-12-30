@@ -65,7 +65,7 @@ export abstract class AbstractSqlQuery<T = any> extends AbstractQuery {
   }
 
   getAllScopedKeyMeta(): IPropertyMeta[] {
-    return this.entityPersistenceGraph.getScopedKeyMeta();
+    return this.entityPersistenceGraph.getScopeKeyMeta();
   }
 
 

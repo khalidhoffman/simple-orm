@@ -1,10 +1,7 @@
 import * as _ from 'lodash';
 
-import { GlobalClassMetaCollection } from '../metadata/meta-collection';
-import { GlobalMetaRegistry }        from '../metadata/meta-registry';
-import { EntityRelationGraphNode }   from './entity-relation-graph-node';
-
-const get = _.get;
+import { GlobalMetaRegistry }      from '../metadata/meta-registry';
+import { EntityRelationGraphNode } from './entity-relation-graph-node';
 
 export class EntityRelationGraph<T = any> {
   entityConstructor: Constructor<T>;
@@ -15,7 +12,7 @@ export class EntityRelationGraph<T = any> {
   constructor(entityConstructor: Constructor<T>, entityRelations: IRelationalQueryPartial<T>) {
     this.entityConstructor = entityConstructor;
     this.entity = entityRelations;
-    this.classMeta = GlobalClassMetaCollection.getClassMeta(entityConstructor);
+    this.classMeta = GlobalMetaRegistry.getClassMeta(entityConstructor);
     this.relationGraph = new EntityRelationGraphNode({
       fn: entityConstructor,
       relationMeta: GlobalMetaRegistry.getRelationMetasByConstructor(entityConstructor),
@@ -32,7 +29,7 @@ export class EntityRelationGraph<T = any> {
 
   get(path: PropertyKey[] | PropertyKey): any {
     const valPath = Array.isArray(path) ? path.join('.') : path;
-    return get(this.entity, valPath);
+    return _.get(this.entity, valPath);
   };
 
   getNode(path: PropertyKey[] | PropertyKey): EntityRelationGraphNode {
@@ -60,7 +57,7 @@ export class EntityRelationGraph<T = any> {
     return primaryKeyMetas;
   }
 
-  getScopedKeyMeta(): IPropertyMeta[] {
+  getScopeKeyMeta(): IPropertyMeta[] {
     const scopedKeyMetas: IPropertyMeta[] = [];
 
     this.relationGraph.forEachMeta('property', function (node: EntityRelationGraphNode, propertyMeta, path) {
