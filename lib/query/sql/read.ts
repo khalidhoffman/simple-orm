@@ -2,15 +2,14 @@ import * as Knex from 'knex';
 
 import {
   AbstractSqlQuery,
-  IEntityPropertyAliasSqlRef,
-  IEntityPropertySqlRef,
-  IEntitySqlRef
-}                                    from './abstract';
-import { EntityRelationType }        from '../../graph/entity-relation';
-import * as utils           from '../../utils';
-import { EntityRelationGraphNode }   from '../../graph/entity-relation-graph-node';
-import { GlobalClassMetaCollection } from '../../metadata/meta-collection';
-import { GlobalMetaRegistry }        from '../../metadata/meta-registry';
+  IEntityPropertyAliasSqlRef
+}                                     from './abstract';
+import { EntityRelationType }         from '../../graph/entity-relation';
+import * as utils                     from '../../utils';
+import { EntityRelationGraphNode }    from '../../graph/entity-relation-graph-node';
+import { GlobalClassMetaCollection }  from '../../metadata/meta-collection';
+import { GlobalMetaRegistry }         from '../../metadata/meta-registry';
+import { QueryEntityInstanceFactory } from '../../query-entity-instance-factory';
 
 type IWhereParamValueSqlRef = IEntityPropertyAliasSqlRef<any, any> | any;
 type IWhereParamsPropertySqlRef = IEntityPropertyAliasSqlRef<any, any>;
@@ -157,8 +156,9 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
   private async executeSql(): Promise<T> {
     const persistedEntityValuesQuery = this.getQuery();
     const results = await this.executeSqlQuery(persistedEntityValuesQuery);
+    const instanceFactory = new QueryEntityInstanceFactory(this.Entity);
 
-    return utils.queryValueMerge(this.Entity, results, this.relations) as T;
+    return instanceFactory.create(results, this.relations) as T;
   }
 
   async execute(): Promise<T> {

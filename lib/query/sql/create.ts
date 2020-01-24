@@ -3,14 +3,13 @@ import { Graph } from 'graphlib';
 
 import {
   AbstractSqlQuery,
-  IEntitySqlRef
-}                             from './abstract';
-import { GlobalMetaRegistry } from '../../metadata/meta-registry';
-import {
-  uuidGen,
-  queryValueMerge
-}                             from '../../utils';
-import { GraphNode }          from '../../graph/graph-node';
+  IEntitySqlRef,
+  ISQLOperation
+}                                     from './abstract';
+import { GlobalMetaRegistry }         from '../../metadata/meta-registry';
+import { uuidGen }                    from '../../utils';
+import { GraphNode }                  from '../../graph/graph-node';
+import { QueryEntityInstanceFactory } from '../../query-entity-instance-factory';
 
 type InsertSqlResult = any & {
   insertId: number,
@@ -24,12 +23,7 @@ type InsertSqlResult = any & {
 };
 type Path = PropertyKey[];
 
-interface IInsertOperation {
-  propertyMetas: IPropertyMeta[];
-  classMeta: IClassMeta;
-  relationMetas: IPropertyMeta[];
-  classSqlRef: IEntitySqlRef;
-  value: any;
+interface IInsertOperation extends ISQLOperation {
 }
 
 type EntityGraphForEachHandler = (node: EntityCreationGraph) => any;
@@ -118,13 +112,13 @@ export class SqlCreateQuery<T extends object = any> extends AbstractSqlQuery<T> 
 
   constructor(Entity: Constructor<T>, queryParams: IQueryParams<T>) {
     super(Entity, queryParams);
-    this.entity = queryValueMerge(Entity, [], this.relations, this.queryParams.entity);
+    const entityInstanceFactory = new QueryEntityInstanceFactory(Entity);
+
+    this.entity = entityInstanceFactory.create([], this.relations, this.queryParams.entity);
     this.entityCreationGraph = new EntityCreationGraph(this.Entity, this.entity, { graph: GLOBAL_CREATION_GRAPH } as EntityCreationGraph);
   }
 
   async execute(): Promise<T> {
-    const insertOperations: IInsertOperation[] = [];
-
     const creationEdges = this.entityCreationGraph.graph.edges();
     const creationNodeKeys = this.entityCreationGraph.graph.nodes();
     const sortedNodeKeys: string[] = this.entityCreationGraph.graph.successors(this.entityCreationGraph.key) || [];
@@ -140,7 +134,7 @@ export class SqlCreateQuery<T extends object = any> extends AbstractSqlQuery<T> 
       const propertyMetas = GlobalMetaRegistry.getPropertyMetasByConstructor(classMeta.fn);
       const relationMetas = GlobalMetaRegistry.getRelationMetasByConstructor(classMeta.fn);
 
-      insertOperations.push({
+      this.operationsQueue.inserts.push({
         relationMetas,
         value,
         classSqlRef,
@@ -149,7 +143,7 @@ export class SqlCreateQuery<T extends object = any> extends AbstractSqlQuery<T> 
       })
     });
 
-    const insertsByTableName: { [key: string]: IInsertOperation[] } = insertOperations.reduce((acc, insertOp) => {
+    const insertsByTableName: { [key: string]: IInsertOperation[] } = this.operationsQueue.inserts.reduce((acc, insertOp) => {
       if (acc[insertOp.classMeta.tableName]) {
         acc[insertOp.classMeta.tableName].push(insertOp);
       } else {

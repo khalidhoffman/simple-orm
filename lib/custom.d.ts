@@ -151,6 +151,9 @@ interface IQueryRelation {
   related: IQueryRelationProperty;
 }
 
+/**
+ * keys should be as defined in database
+ */
 type IQueryValues<T = any> = { [key: string]: T };
 
 type IEntityPropertyConstraint = any;
@@ -163,6 +166,10 @@ interface IEntityRelationGraphNode<T = any> {
   fn: Constructor;
   relationMeta: IPropertyMeta[];
   propertyMeta: IPropertyMeta[];
+  /**
+   * @experimental
+   * @deprecated
+   */
   constraints: IEntityPropertyConstraint[]
   children?: IEntityRelationGraphNode[] | IEntityRelationGraphNode;
   value: T;

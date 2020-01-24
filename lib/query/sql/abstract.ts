@@ -18,6 +18,21 @@ export type IEntityPropertySqlRef = Knex.QueryBuilder;
 export type IEntityRelationSqlRef = Knex.QueryBuilder;
 export type IEntityPropertyAliasSqlRef<K extends string, E> = Knex.Ref<K, E>;
 
+export interface ISQLOperation {
+  propertyMetas: IPropertyMeta[];
+  classMeta: IClassMeta;
+  relationMetas: IPropertyMeta[];
+  classSqlRef: IEntitySqlRef;
+  value: any;
+}
+
+export interface ISQLOperationsQueue {
+  inserts: ISQLOperation[];
+  updates: ISQLOperation[];
+  deletes: ISQLOperation[];
+  selects: ISQLOperation[];
+}
+
 export abstract class AbstractSqlQuery<T = any> extends AbstractQuery {
   sql: Knex = sql;
   logger = logger;
@@ -26,12 +41,14 @@ export abstract class AbstractSqlQuery<T = any> extends AbstractQuery {
   entityPropertiesMetadata: IPropertyMeta[];
   entityPrimaryColumnMetadata: IPropertyMeta;
   entityPersistenceGraph: EntityRelationGraph<T>;
+  operationsQueue: ISQLOperationsQueue;
 
   constructor(Entity: Constructor<T>, queryParams: IQueryParams<T>) {
     super(Entity, queryParams);
     const entitySqlRef = this.getEntitySqlRef(this.entityMetadata);
     const entityPrimaryColumnMetadata = this.metaRegistry.getIdentifierPropertyMeta(this.Entity);
 
+    this.operationsQueue = { selects: [], updates: [], inserts: [], deletes: [] };
     this.entityPersistenceGraph = new EntityRelationGraph(this.Entity, this.queryParams.entity as IRelationalQueryPartial<T>);
     this.entitySqlRef = entitySqlRef;
     this.entityPrimaryColumnMetadata = entityPrimaryColumnMetadata;
