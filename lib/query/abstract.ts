@@ -1,7 +1,7 @@
 import Store            from 'simple-store';
 import { MetaRegistry } from '../metadata/meta-registry';
 
-export abstract class AbstractQuery<T = any> {
+export abstract class AbstractQuery<T extends object = any> {
   store: Store = new Store();
   metaRegistry: MetaRegistry = new MetaRegistry();
 
@@ -10,11 +10,11 @@ export abstract class AbstractQuery<T = any> {
   entityPropertiesMetadata: IPropertyMeta[];
   entityRelationsMetadata: IPropertyMeta[];
   relations: IRelationalQueryPartial<T>;
-  queryParams: IQueryParams;
+  queryParams: IQueryParams<T>;
 
   abstract execute(): Promise<T>
 
-  protected constructor(Entity: Constructor<T>, queryParams: IQueryParams) {
+  protected constructor(Entity: Constructor<T>, queryParams: IQueryParams<T>) {
     this.Entity = Entity;
     this.entityMetadata = this.metaRegistry.getClassMeta(Entity);
     this.entityPropertiesMetadata = this.metaRegistry.getPropertyMetasByConstructor(Entity);
@@ -22,9 +22,9 @@ export abstract class AbstractQuery<T = any> {
     this.queryParams = {
       ...queryParams,
       options: {
-        ...queryParams && queryParams.options,
+        ...(queryParams && queryParams.options),
         relations: {
-          ...queryParams && queryParams.options && queryParams.options.relations,
+          ...(queryParams && queryParams.options && queryParams.options.relations),
         }
       }
     };

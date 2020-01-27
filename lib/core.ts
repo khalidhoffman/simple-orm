@@ -3,12 +3,10 @@ import * as mysql from 'mysql';
 import {
   GlobalClassMetaCollection,
   GlobalPropertyMetaCollection
-} from './metadata/meta-collection';
-import {
-  SqlCreateQuery,
-  SqlReadQuery,
-  SqlUpdateQuery
-} from './query';
+}                         from './metadata/meta-collection';
+import { SqlCreateQuery } from './query/sql/create';
+import { SqlReadQuery }   from './query/sql/read';
+import { SqlUpdateQuery } from './query/sql/update';
 
 /**
  * TODO: complete following sub-tasks
@@ -31,7 +29,7 @@ export class SimpleORM {
     return query.execute();
   }
 
-  async retrieve<T>(Entity: Constructor<T>, identifier: EntityIdentifier<T>, options?: IRetrieveOptions<T>): Promise<T> {
+  async retrieve<T extends object>(Entity: Constructor<T>, identifier: EntityIdentifier<T>, options?: IRetrieveOptions<T>): Promise<T> {
     const query = new SqlReadQuery<T>(Entity, { entity: identifier, options });
 
     return query.execute();

@@ -1,54 +1,36 @@
 import * as Knex  from 'knex';
 import * as mysql from 'mysql';
 
-import { logger }       from '../../logger';
+import { logger } from '../../logger';
+
 import { MetaRegistry } from '../../metadata/meta-registry';
 
-import { AbstractQuery }       from '../abstract';
 import { EntityRelationGraph } from '../../graph/entity-relation-graph';
 
-const knex = require('knex');
-const sql = knex({
-  dialect: 'mysql',
-  asyncStackTraces: true
-});
+import { AbstractQuery } from '../abstract';
 
-export type IEntitySqlRef = Knex.QueryBuilder;
-export type IEntityPropertySqlRef = Knex.QueryBuilder;
-export type IEntityRelationSqlRef = Knex.QueryBuilder;
-export type IEntityPropertyAliasSqlRef<K extends string, E> = Knex.Ref<K, E>;
+import { SqlQueryOperationQueue } from './common/query-operation-queue';
+import {
+  EntityPropertyAliasSqlRef,
+  EntitySqlRef,
+  sql
+}                                 from './common/entity-sql-ref';
 
-export interface ISQLOperation {
-  propertyMetas: IPropertyMeta[];
-  classMeta: IClassMeta;
-  relationMetas: IPropertyMeta[];
-  classSqlRef: IEntitySqlRef;
-  value: any;
-}
-
-export interface ISQLOperationsQueue {
-  inserts: ISQLOperation[];
-  updates: ISQLOperation[];
-  deletes: ISQLOperation[];
-  selects: ISQLOperation[];
-}
-
-export abstract class AbstractSqlQuery<T = any> extends AbstractQuery {
+export abstract class AbstractSqlQuery<T extends object = any> extends AbstractQuery {
   sql: Knex = sql;
   logger = logger;
   metaRegistry: MetaRegistry = new MetaRegistry();
-  entitySqlRef: IEntitySqlRef;
+  entitySqlRef: EntitySqlRef;
   entityPropertiesMetadata: IPropertyMeta[];
   entityPrimaryColumnMetadata: IPropertyMeta;
   entityPersistenceGraph: EntityRelationGraph<T>;
-  operationsQueue: ISQLOperationsQueue;
+  operationsQueue: SqlQueryOperationQueue = new SqlQueryOperationQueue();
 
   constructor(Entity: Constructor<T>, queryParams: IQueryParams<T>) {
     super(Entity, queryParams);
     const entitySqlRef = this.getEntitySqlRef(this.entityMetadata);
     const entityPrimaryColumnMetadata = this.metaRegistry.getIdentifierPropertyMeta(this.Entity);
 
-    this.operationsQueue = { selects: [], updates: [], inserts: [], deletes: [] };
     this.entityPersistenceGraph = new EntityRelationGraph(this.Entity, this.queryParams.entity as IRelationalQueryPartial<T>);
     this.entitySqlRef = entitySqlRef;
     this.entityPrimaryColumnMetadata = entityPrimaryColumnMetadata;
@@ -90,7 +72,7 @@ export abstract class AbstractSqlQuery<T = any> extends AbstractQuery {
     entityPropertyMetadata: IPropertyMeta,
     entityMetadata: IClassMeta = this.entityMetadata,
     options?: { disableAlias: boolean }
-  ): IEntityPropertyAliasSqlRef<Key, Entity> {
+  ): EntityPropertyAliasSqlRef<Key, Entity> {
 
     if (options && options.disableAlias || !entityPropertyMetadata.options.sql.alias) {
       return this.sql.ref(entityPropertyMetadata.options.sql.name).withSchema(entityMetadata.tableName);
@@ -98,11 +80,11 @@ export abstract class AbstractSqlQuery<T = any> extends AbstractQuery {
     return this.sql.ref(entityPropertyMetadata.options.sql.name).as(entityPropertyMetadata.options.sql.alias).withSchema(entityMetadata.tableName);
   }
 
-  getEntitySqlRef(entityMetadata: IClassMeta): IEntitySqlRef {
-    return sql.table(entityMetadata.tableName);
+  getEntitySqlRef(entityMetadata: IClassMeta): EntitySqlRef {
+    return this.sql.table(entityMetadata.tableName);
   }
 
-  executeSqlQuery<T = any>(sql: string, values: any[] = [], connection: mysql.Connection = (global as any).GLOBAL_MYSQL_CONN): Promise<T[]> {
+  executeSqlQuery<T = any>(sql: string, values: any[] = [], connection: mysql.Connection = (global as any).GLOBAL_MYSQL_CONN): Promise<T> {
     const queryOptions: mysql.QueryOptions = {
       sql,
       values

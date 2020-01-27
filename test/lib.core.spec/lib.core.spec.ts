@@ -1,14 +1,15 @@
-import * as mysql from "mysql";
-import { expect } from "chai";
+import * as mysql from 'mysql';
+import { expect } from 'chai';
 
-import { SimpleORM }   from "../../lib/core";
+import { SimpleORM } from '../../lib/core';
+
 import {
   ATestEntity,
   ATestGrandParentEntity,
   ATestParentEntity
-} from "./assets";
+} from './assets';
 
-describe("/lib/core", function () {
+describe('lib/core', function () {
   let connection: mysql.Connection;
 
   before(function () {
@@ -22,11 +23,11 @@ describe("/lib/core", function () {
     })
   });
 
-  describe("SimpleORM", function () {
+  describe('SimpleORM', function () {
 
-    describe("insert()", function () {
+    describe('insert()', function () {
 
-      it("should define primary key of saved classes", async function () {
+      it('should define primary key of saved classes', async function () {
         const orm = new SimpleORM(connection);
 
         const result = await orm.insert(ATestParentEntity, {
@@ -43,9 +44,9 @@ describe("/lib/core", function () {
       })
     });
 
-    describe("retrieve()", function () {
+    describe('retrieve()', function () {
 
-      it("should return instance with mapped values populated from database", async function () {
+      it('should return instance with mapped values populated from database', async function () {
         const orm = new SimpleORM(connection);
         const result: ATestEntity = await orm.retrieve(ATestEntity, { id: 1 }, {
           relations: {
@@ -58,7 +59,7 @@ describe("/lib/core", function () {
         expect(result.excludedId).to.be.undefined;
       });
 
-      it("should return a value for related entities when \"Many-To-One\" relation is used", async function () {
+      it('should return a value for related entities when "Many-To-One" relation is used', async function () {
         const orm = new SimpleORM(connection);
         const result: ATestEntity = await orm.retrieve(ATestEntity, { id: 2 }, {
           relations: {
@@ -75,7 +76,7 @@ describe("/lib/core", function () {
         expect(result.excludedId).to.be.undefined;
       });
 
-      it("should return a value for related entities when \"One-To-Many\" relation is used", async function () {
+      it('should return a value for related entities when "One-To-Many" relation is used', async function () {
         const orm = new SimpleORM(connection);
         const result: ATestParentEntity = await orm.retrieve(ATestParentEntity, { id: 789 }, {
           relations: {

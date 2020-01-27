@@ -1,11 +1,13 @@
+import * as utils from '../utils';
+
+import { EntityRelationType } from '../graph/entity-relation';
+
 import {
   ClassMetaCollection,
   GlobalClassMetaCollection,
   GlobalPropertyMetaCollection,
   PropertyMetaCollection
-}                                   from './meta-collection';
-import { EntityRelationType }       from '../graph/entity-relation';
-import { getInverseFnPropertyName } from '../utils';
+} from './meta-collection';
 
 export class MetaRegistry {
   classMetaCollection: ClassMetaCollection = GlobalClassMetaCollection;
@@ -43,17 +45,17 @@ export class MetaRegistry {
     return this.classMetaCollection.getClassMeta(constructor);
   }
 
-  getQueryRelations<T extends object = any>(entityConstructor: Constructor<T>, queryRelationsParams: IQueryRelationsParams<T>, accumulator: IQueryRelation[] = []): IQueryRelation[] {
+  getQueryRelations<T extends object = any>(entityConstructor: Constructor<T>, queryRelationsParams: IRelationalQueryPartial<T>, accumulator: IQueryPropertyRelation[] = []): IQueryPropertyRelation[] {
     const entityPrimaryColumnMetadata = GlobalMetaRegistry.getIdentifierPropertyMeta(entityConstructor);
     const entityMetadata = GlobalMetaRegistry.getClassMeta(entityConstructor);
-    const relations: IQueryRelation[] = accumulator;
+    const relations: IQueryPropertyRelation[] = accumulator;
 
     if ((queryRelationsParams === undefined) || (queryRelationsParams === null)) {
       debugger
     }
 
 
-    if (queryRelationsParams === true) {
+    if (utils.isPrimitive(queryRelationsParams)) {
       return [];
     }
 
@@ -74,7 +76,7 @@ export class MetaRegistry {
         debugger
       }
 
-      let baseRelation: IQueryRelation = {
+      let baseRelation: IQueryPropertyRelation = {
         type: entityPropertyRelationMeta.meta.relation.type,
         related: {
           property: null,
@@ -100,7 +102,7 @@ export class MetaRegistry {
           case EntityRelationType.ManyToOne: {
             const relatedEntityConstructor = entityPropertyRelationMeta.options.typeFunction();
             const relatedEntityPrimaryMeta = GlobalMetaRegistry.getIdentifierPropertyMeta(relatedEntityConstructor);
-            const relatedEntityPropertyName = getInverseFnPropertyName(entityPropertyRelationMeta.options.inverseSide);
+            const relatedEntityPropertyName = utils.getInverseFnPropertyName(entityPropertyRelationMeta.options.inverseSide);
             const relatedPropertyRelationMeta = GlobalMetaRegistry.getPropertyRelationMeta(relatedEntityConstructor, relatedEntityPropertyName);
             const relatedEntityMeta = GlobalMetaRegistry.getClassMeta(relatedEntityConstructor);
             const relatedResolvedPropertyName = relatedPropertyRelationMeta.options.sql.name || relatedEntityPrimaryMeta.propertyName;

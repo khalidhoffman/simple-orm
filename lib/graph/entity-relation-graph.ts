@@ -3,7 +3,7 @@ import * as _ from 'lodash';
 import { GlobalMetaRegistry }      from '../metadata/meta-registry';
 import { EntityRelationGraphNode } from './entity-relation-graph-node';
 
-export class EntityRelationGraph<T = any> {
+export class EntityRelationGraph<T extends object = any> {
   entityConstructor: Constructor<T>;
   entity: IRelationalQueryPartial<T>;
   classMeta: IClassMeta;
@@ -69,7 +69,7 @@ export class EntityRelationGraph<T = any> {
     return scopedKeyMetas;
   }
 
-  getRelations(): IQueryRelation[] {
-    return GlobalMetaRegistry.getQueryRelations(this.constructor as Constructor, this.entity);
+  getRelations(): IQueryPropertyRelation[] {
+    return GlobalMetaRegistry.getQueryRelations(this.entityConstructor, this.entity);
   }
 }

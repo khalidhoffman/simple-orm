@@ -71,19 +71,23 @@ participant EntityMetadataGraph
     * uses metadata to determine how to retrieve entity 
 3. Determine diff of saved entity and active entity 
 4. Generate CRUD operations from diff
-    1. Create
+    1. generate diff
+    2. convert diff to mysql AST
+    2. apply mysql AST to sql builder (?)
+    * Create
         - sql
             - `INSERT INTO ... VALUES ...;`
-    1. Read
+    * Read
         - sql
             - `SELECT ... FROM ... WHERE ...`
             - mvp complete
-    1. Update
+    * Update
         - sql
             - `UPDATE ... SET (a=b) WHERE ...`
-    1. Delete
+    * Delete
         - sql
             - `DELETE FROM ... WHERE ...`
+    * CRUD operations can be saved in ledger-like format (queued & ordered) for better control over execution and result handling
 5. Execute CRUD operations from diff
 
 | abstract | psuedo (`A -(C)> B`) | sql | nosql

@@ -1,25 +1,26 @@
 import * as Knex from 'knex';
 
 import {
-  AbstractSqlQuery,
-  IEntityPropertyAliasSqlRef
+  AbstractSqlQuery
 }                                     from './abstract';
 import { EntityRelationType }         from '../../graph/entity-relation';
 import * as utils                     from '../../utils';
 import { EntityRelationGraphNode }    from '../../graph/entity-relation-graph-node';
 import { GlobalClassMetaCollection }  from '../../metadata/meta-collection';
 import { GlobalMetaRegistry }         from '../../metadata/meta-registry';
-import { QueryEntityInstanceFactory } from '../../query-entity-instance-factory';
+import { QueryEntityInstanceFactory } from './common/query-entity-instance-factory';
+import { EntityPropertyAliasSqlRef }  from './common/entity-sql-ref';
+import { normalizeValueSet }          from './common/builder';
 
-type IWhereParamValueSqlRef = IEntityPropertyAliasSqlRef<any, any> | any;
-type IWhereParamsPropertySqlRef = IEntityPropertyAliasSqlRef<any, any>;
+type IWhereParamValueSqlRef = EntityPropertyAliasSqlRef<any, any> | any;
+type IWhereParamsPropertySqlRef = EntityPropertyAliasSqlRef<any, any>;
 
 interface IWhereParam {
   property: { sql: IWhereParamsPropertySqlRef, meta: IPropertyMeta };
   value: { raw?: any, sql: IWhereParamValueSqlRef[] };
 }
 
-export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
+export class SqlReadQuery<T extends object = any> extends AbstractSqlQuery<T> {
 
   /**
    * @example
@@ -66,11 +67,11 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
   }
 
   protected applyJoins(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
-    const queryRelations: IQueryRelation[] = GlobalMetaRegistry.getQueryRelations(this.Entity, this.relations);
+    const queryRelations: IQueryPropertyRelation[] = GlobalMetaRegistry.getQueryRelations(this.Entity, this.relations);
     let tableName: string;
-    let baseProperty: IEntityPropertyAliasSqlRef<string, T>;
-    let relatedProperty: IEntityPropertyAliasSqlRef<string, any>;
-    sortQueryRelations(queryRelations).forEach((queryRelation: IQueryRelation) => {
+    let baseProperty: EntityPropertyAliasSqlRef<string, T>;
+    let relatedProperty: EntityPropertyAliasSqlRef<string, any>;
+    sortQueryRelations(queryRelations).forEach((queryRelation: IQueryPropertyRelation) => {
 
       switch (queryRelation.type) {
         case EntityRelationType.OneToOne:
@@ -155,10 +156,10 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
 
   private async executeSql(): Promise<T> {
     const persistedEntityValuesQuery = this.getQuery();
-    const results = await this.executeSqlQuery(persistedEntityValuesQuery);
+    const results: IQueryValueSet[] = await this.executeSqlQuery(persistedEntityValuesQuery);
     const instanceFactory = new QueryEntityInstanceFactory(this.Entity);
 
-    return instanceFactory.create(results, this.relations) as T;
+    return instanceFactory.createFromValueSets(results.map(result => normalizeValueSet(this.Entity, result))) as T;
   }
 
   async execute(): Promise<T> {
@@ -171,9 +172,9 @@ export class SqlReadQuery<T = any> extends AbstractSqlQuery<T> {
 }
 
 
-function sortQueryRelations(queryRelations: IQueryRelation[]): IQueryRelation[] {
+function sortQueryRelations(queryRelations: IQueryPropertyRelation[]): IQueryPropertyRelation[] {
   return queryRelations.reverse();
-  // sortBy(queryRelations, (sortingQueryRelation: IQueryRelation) => {
+  // sortBy(queryRelations, (sortingQueryRelation: IQueryPropertyRelation) => {
   //   const queryRelationEntities = queryRelations
   //     .filter(queryRelation => queryRelation !== sortingQueryRelation)
   //     .map(queryRelation => queryRelation.base.entity);

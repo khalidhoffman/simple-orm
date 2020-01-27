@@ -11,23 +11,14 @@ const get = _.get;
 
 export class EntityRelationGraphNode<T = any> extends GraphNode implements IEntityRelationGraphNode {
   fn: Constructor;
-  relationMeta: IPropertyMeta[];
-  propertyMeta: IPropertyMeta[];
-  constraints: IEntityPropertyConstraint[];
+  relationMeta: IPropertyMeta[] = [];
+  propertyMeta: IPropertyMeta[] = [];
+  constraints: IEntityPropertyConstraint[] = [];
   value: any;
-  children?: EntityRelationGraphNode<T[keyof T]>[];
+  children?: EntityRelationGraphNode<ValuesOf<T>>[];
 
   constructor(props: Partial<IEntityRelationGraphNode>) {
-    const key = uuidGen();
-    super({
-      key: key,
-      graph: GLOBAL_GRAPH,
-      relationMeta: [],
-      propertyMeta: [],
-      constraints: [],
-      value: undefined,
-      ...props
-    });
+    super({ key: uuidGen(), graph: GLOBAL_GRAPH });
     Object.assign(this, props);
     this.build();
   }

@@ -1,5 +1,8 @@
 type Keys<T> = keyof T;
 type Values<T> = T[Keys<T>];
+type ValuesOf<T> = Values<T>;
+
+type Path = PropertyKey[];
 
 interface Constructor<ReturnType = any, Arguments extends Array<any> = any[]> extends Function {
   new(...args: Arguments): ReturnType
@@ -21,7 +24,7 @@ interface IMetaParams {
 }
 
 type EntityValueDict<T> = DeepPartial<T>;
-type EntityIdentifier<T> = number | EntityValueDict<T>;
+type EntityIdentifier<T> = EntityValueDict<T>;
 
 type IMeta = { [key: string]: any; } & IMetaParams;
 
@@ -70,6 +73,7 @@ interface IPropertyMeta extends IMeta {
   propertyName: PropertyKey;
   options: IPropertyMetaOptions;
   type?: IPropertyMetaType;
+  // TODO refactor {@link IPropertyMeta#meta} to better name ie `IPropertyMeta#extra`
   meta?: IPropertyMetaExtra;
 }
 
@@ -77,8 +81,9 @@ interface IClassMeta extends IMeta {
   tableName: string;
 }
 
+// TODO createFromValueSets more robust query API {@link https://gitlab.weblee.io/webleedev/simple-orm/issues/1}
 /**
- * @todo create more robust query API {@link https://gitlab.weblee.io/webleedev/simple-orm/issues/1}
+ *
  * @see {@link https://gitlab.weblee.io/webleedev/simple-orm/issues/1}
  */
 interface IQueryParams<T = any> {
@@ -101,14 +106,6 @@ interface IEntityRelation {
   type: IEntityRelationType;
 }
 
-// type ObjectType<T> = { new (): T }|Function;
-
-interface Dict<T> {
-  [key: string]: T;
-}
-
-type ChildOf<T> = any;
-
 type DeepPartial<T> = { [K in keyof T]?: DeepPartial<T[K]> }
 type IRelationalQueryPartial<T> = { [K in keyof T]?: IRelationalQueryPartial<T[K]> | true }
 
@@ -119,8 +116,6 @@ interface IRetrieveOptions<T = any> {
 interface ISaveOptions<T = any> {
 
 }
-
-type IQueryRelationsParams<T> = IRelationalQueryPartial<T>;
 
 interface IQueryEntity {
   fn: Constructor;
@@ -145,7 +140,7 @@ interface IQueryRelationProperty {
   property: IQueryProperty;
 }
 
-interface IQueryRelation {
+interface IQueryPropertyRelation {
   type: IEntityRelationType;
   base: IQueryRelationProperty;
   related: IQueryRelationProperty;
@@ -154,12 +149,9 @@ interface IQueryRelation {
 /**
  * keys should be as defined in database
  */
-type IQueryValues<T = any> = { [key: string]: T };
+type IQueryValueSet<T = any> = { [key: string]: ValuesOf<T> };
 
 type IEntityPropertyConstraint = any;
-
-
-type IGraph = any;
 
 interface IEntityRelationGraphNode<T = any> {
   graph: IGraph;
@@ -174,14 +166,3 @@ interface IEntityRelationGraphNode<T = any> {
   children?: IEntityRelationGraphNode[] | IEntityRelationGraphNode;
   value: T;
 }
-
-
-/**
- * @deprecated
- */
-type TypedDict<T, Result = T> = { [k in keyof T]: Result extends Partial<T> ? Result[k] : Result };
-
-/**
- * @deprecated
- */
-type IPropertyMetaDict<T = any> = TypedDict<T, IEntityRelationGraphNode>;
