@@ -31,7 +31,7 @@ interface ISqlSelectOperationCriteria {
 }
 
 export class SqlSelectOperation<Entity extends object = any> extends SqlOperation<Entity> {
-  type: SqlOperationType;
+  readonly type = 'select';
   propertyMetas: IPropertyMeta[];
   classMeta: IClassMeta;
   relationMetas: IPropertyMeta[];

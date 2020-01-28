@@ -12,6 +12,19 @@ import {
 describe('lib/core', function () {
   let connection: mysql.Connection;
 
+  it('can execute some javascript', function(){
+    const { Parser } = require('node-sql-parser');
+    const parser = new Parser();
+
+    // mysql sql grammer parsed by default
+    const ast = parser.astify(require('fs').readFileSync('./test/assets/test.sql', 'utf8'));
+
+    debugger
+
+    require('fs').writeFileSync('./test/assets/test.sql.ast.json', JSON.stringify(ast));
+  });
+
+
   before(function () {
     connection = mysql.createConnection({
       user: process.env.MYSQL_UN,
