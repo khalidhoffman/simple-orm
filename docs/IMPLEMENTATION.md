@@ -15,7 +15,7 @@ class EntityMetadata {
 }
 class EntityMetadataGraph
 class EntityRelationGraph
-class EntityQueryGraph
+class EntityQueryGraphNode
 class Entity
 class Graph
 class AbstractQuery
@@ -24,8 +24,8 @@ class SqlReadQuery
 
 EntityRelationGraph --o Graph
 EntityMetadataGraph --o Graph
-EntityQueryGraph --o Graph
-EntityQueryGraph "1" --* "1" Entity
+EntityQueryGraphNode --o Graph
+EntityQueryGraphNode "1" --* "1" Entity
 Entity --> MetadataDecorator: calls
 AbstractQuery "*" --* "1" EntityRelationGraph
 AbstractQuery "*" --* "1" EntityMetadataGraph
@@ -34,7 +34,7 @@ PropertyMetadataDecorator --o MetadataDecorator
 MetadataDecorator --> EntityMetadata: creates
 PropertyMetadataDecorator --> EntityPropertyMetadata: creates
 EntityMetadataGraph "1" --* "*" EntityMetadata
-AbstractQuery "1" --* "1" EntityQueryGraph
+AbstractQuery "1" --* "1" EntityQueryGraphNode
 AbstractSqlQuery --o AbstractQuery
 SqlReadQuery --o AbstractSqlQuery 
 ```

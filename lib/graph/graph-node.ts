@@ -1,7 +1,5 @@
 import { Graph } from 'graphlib';
 
-export const GLOBAL_GRAPH = new Graph();
-
 interface IGraphNode {
   key: string;
   graph: Graph;

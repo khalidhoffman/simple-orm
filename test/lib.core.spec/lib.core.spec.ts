@@ -19,8 +19,6 @@ describe('lib/core', function () {
     // mysql sql grammer parsed by default
     const ast = parser.astify(require('fs').readFileSync('./test/assets/test.sql', 'utf8'));
 
-    debugger
-
     require('fs').writeFileSync('./test/assets/test.sql.ast.json', JSON.stringify(ast));
   });
 

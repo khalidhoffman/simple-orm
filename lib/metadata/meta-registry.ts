@@ -1,6 +1,6 @@
 import * as utils from '../utils';
 
-import { EntityRelationType } from '../graph/entity-relation';
+import { EntityRelationType } from '../entity-relation';
 
 import {
   ClassMetaCollection,

@@ -3,14 +3,14 @@ import * as Knex from 'knex';
 import {
   AbstractSqlQuery
 }                                     from './abstract';
-import { EntityRelationType }         from '../../graph/entity-relation';
+import { EntityRelationType }         from '../../entity-relation';
 import * as utils                     from '../../utils';
-import { EntityRelationGraphNode }    from '../../graph/entity-relation-graph-node';
 import { GlobalClassMetaCollection }  from '../../metadata/meta-collection';
 import { GlobalMetaRegistry }         from '../../metadata/meta-registry';
 import { QueryEntityInstanceFactory } from './common/query-entity-instance-factory';
 import { EntityPropertyAliasSqlRef }  from './common/entity-sql-ref';
-import { normalizeValueSet }          from './common/builder';
+import { normalizeValueSet }    from './common/builder';
+import { EntityQueryGraphNode } from '../entity-query-graph-node';
 
 type IWhereParamValueSqlRef = EntityPropertyAliasSqlRef<any, any> | any;
 type IWhereParamsPropertySqlRef = EntityPropertyAliasSqlRef<any, any>;
@@ -98,7 +98,7 @@ export class SqlReadQuery<T extends object = any> extends AbstractSqlQuery<T> {
   protected applyWhere(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
     const whereParamsCollection: IWhereParam[] = [];
 
-    this.entityPersistenceGraph.relationGraph.forEachMeta('property', (node: EntityRelationGraphNode, propertyMeta: IPropertyMeta, path: PropertyKey[]) => {
+    this.entityQueryGraph.forEachMeta('property', (node: EntityQueryGraphNode, propertyMeta: IPropertyMeta, path: PropertyKey[]) => {
       const classMeta = GlobalClassMetaCollection.getClassMeta(propertyMeta.fn);
       const whereParamValue = node.value === undefined ? propertyMeta.options.sql.scope : node.value;
       const formattedWhereParamValue = typeof whereParamValue === 'object' ? whereParamValue[propertyMeta.propertyName] : whereParamValue;

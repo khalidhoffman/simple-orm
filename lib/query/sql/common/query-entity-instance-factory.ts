@@ -1,6 +1,6 @@
 import * as utils             from '../../../utils';
 import { GlobalMetaRegistry } from '../../../metadata/meta-registry';
-import { EntityRelationType } from '../../../graph/entity-relation';
+import { EntityRelationType } from '../../../entity-relation';
 
 interface IQueryEntityInstanceParams<T> {
   valueSets: IQueryValueSet[];

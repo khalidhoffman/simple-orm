@@ -7,7 +7,7 @@ import { AbstractSqlQuery }           from '../abstract';
 import { QueryEntityInstanceFactory } from '../common/query-entity-instance-factory';
 import { SqlInsertOperation }         from '../common/query-insert-operation';
 
-import { EntityInsertGraph } from './entity-insert-graph';
+import { EntityQueryGraphNode } from '../../entity-query-graph-node';
 
 
 // TODO refactor GLOBAL_CREATION_GRAPH out of codebase
@@ -15,20 +15,18 @@ const GLOBAL_CREATION_GRAPH = new Graph();
 
 export class SqlCreateQuery<T extends object = any> extends AbstractSqlQuery<T> {
   entity: T;
-  entityInsertGraph: EntityInsertGraph;
 
   constructor(Entity: Constructor<T>, queryParams: IQueryParams<T>) {
     super(Entity, queryParams);
     const entityInstanceFactory = new QueryEntityInstanceFactory(Entity);
 
     this.entity = entityInstanceFactory.createFromValueSets([this.queryParams.entity]);
-    this.entityInsertGraph = new EntityInsertGraph(this.Entity, this.entity, { graph: GLOBAL_CREATION_GRAPH } as EntityInsertGraph);
   }
 
   async execute(): Promise<T> {
-    const entityInsertGraphSortedNodes = this.entityInsertGraph.sortedNodes;
+    const entityInsertGraphSortedNodes = this.entityQueryGraph.sortedNodes;
 
-    entityInsertGraphSortedNodes.forEach((createGraphNode: EntityInsertGraph) => {
+    entityInsertGraphSortedNodes.forEach((createGraphNode: EntityQueryGraphNode) => {
       const value = utils.get(this.queryParams.entity, createGraphNode.path);
       const classMeta = GlobalMetaRegistry.getClassMeta(createGraphNode.entityConstructor);
       const classSqlRef = this.getEntitySqlRef(classMeta);
@@ -72,6 +70,6 @@ export class SqlCreateQuery<T extends object = any> extends AbstractSqlQuery<T> 
 
     });
 
-    return this.entityInsertGraph.entity;
+    return this.entityQueryGraph.entity;
   }
 }

@@ -4,7 +4,7 @@ import {
   PropertyMeta,
   PropertyRelationMeta
 }                             from './metadata/meta';
-import { EntityRelationType } from './graph/entity-relation';
+import { EntityRelationType } from './entity-relation';
 import {
   GlobalClassMetaCollection,
   GlobalPropertyMetaCollection

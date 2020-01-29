@@ -2,7 +2,7 @@ type Keys<T> = keyof T;
 type Values<T> = T[Keys<T>];
 type ValuesOf<T> = Values<T>;
 
-type Path = PropertyKey[];
+type PropertyPath = PropertyKey[];
 
 interface Constructor<ReturnType = any, Arguments extends Array<any> = any[]> extends Function {
   new(...args: Arguments): ReturnType
@@ -115,16 +115,6 @@ interface IRetrieveOptions<T = any> {
 
 interface ISaveOptions<T = any> {
 
-}
-
-interface IQueryEntity {
-  fn: Constructor;
-  sqlRef: any;
-  meta: IClassMeta;
-  primaryKey: PropertyKey;
-  primaryMeta: IPropertyMeta;
-  propertyMeta: IPropertyMeta;
-  propertyKey: PropertyKey;
 }
 
 interface IQueryProperty {

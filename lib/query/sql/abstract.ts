@@ -5,8 +5,6 @@ import { logger } from '../../logger';
 
 import { MetaRegistry } from '../../metadata/meta-registry';
 
-import { EntityRelationGraph } from '../../graph/entity-relation-graph';
-
 import { AbstractQuery } from '../abstract';
 
 import { SqlQueryOperationQueue } from './common/query-operation-queue';
@@ -14,7 +12,8 @@ import {
   EntityPropertyAliasSqlRef,
   EntitySqlRef,
   sql
-}                                 from './common/entity-sql-ref';
+}                               from './common/entity-sql-ref';
+import { EntityQueryGraphNode } from '../entity-query-graph-node';
 
 export abstract class AbstractSqlQuery<T extends object = any> extends AbstractQuery {
   sql: Knex = sql;
@@ -22,51 +21,21 @@ export abstract class AbstractSqlQuery<T extends object = any> extends AbstractQ
   metaRegistry: MetaRegistry = new MetaRegistry();
   entitySqlRef: EntitySqlRef;
   entityPropertiesMetadata: IPropertyMeta[];
-  entityPrimaryColumnMetadata: IPropertyMeta;
-  entityPersistenceGraph: EntityRelationGraph<T>;
+  entityQueryGraph: EntityQueryGraphNode<T>;
   operationsQueue: SqlQueryOperationQueue = new SqlQueryOperationQueue();
 
   constructor(Entity: Constructor<T>, queryParams: IQueryParams<T>) {
     super(Entity, queryParams);
-    const entitySqlRef = this.getEntitySqlRef(this.entityMetadata);
-    const entityPrimaryColumnMetadata = this.metaRegistry.getIdentifierPropertyMeta(this.Entity);
 
-    this.entityPersistenceGraph = new EntityRelationGraph(this.Entity, this.queryParams.entity as IRelationalQueryPartial<T>);
-    this.entitySqlRef = entitySqlRef;
-    this.entityPrimaryColumnMetadata = entityPrimaryColumnMetadata;
-    this.store.update({
-      sql: this.sql,
-      entityPrimaryColumnMetadata,
-      entitySqlRef
+    this.entitySqlRef = this.getEntitySqlRef(this.entityMetadata);
+    this.entityQueryGraph = new EntityQueryGraphNode({
+      entityConstructor: this.Entity,
+      entity: this.queryParams.entity,
+      parent: null
     });
   }
 
   abstract execute(): Promise<T>;
-
-  getQueryEntity(EntityConstructor: Constructor, propertyKey?: PropertyKey): IQueryEntity {
-    const classMeta = this.metaRegistry.getClassMeta(EntityConstructor);
-    const primaryMeta = this.metaRegistry.getIdentifierPropertyMeta(EntityConstructor);
-    const propertyMeta = propertyKey ? this.metaRegistry.getPropertyMeta(EntityConstructor, propertyKey) : primaryMeta;
-
-    return {
-      sqlRef: this.getEntitySqlRef(classMeta),
-      meta: classMeta,
-      fn: EntityConstructor,
-      propertyKey: propertyMeta.propertyName,
-      propertyMeta: propertyMeta,
-      primaryKey: primaryMeta.propertyName,
-      primaryMeta: primaryMeta
-    }
-  }
-
-  getAllPrimaryKeyMeta(): IPropertyMeta[] {
-    return this.entityPersistenceGraph.getPrimaryKeyMeta();
-  }
-
-  getAllScopedKeyMeta(): IPropertyMeta[] {
-    return this.entityPersistenceGraph.getScopeKeyMeta();
-  }
-
 
   getPropertySqlRef<Key extends string, Entity>(
     entityPropertyMetadata: IPropertyMeta,
