@@ -1,14 +1,16 @@
 import 'reflect-metadata';
 
+import { getInverseFnPropertyName } from '../../utils';
+import { EntityRelationType }       from '../../entity-relation';
+
 import {
   PropertyMeta,
-  PropertyRelationMeta
-}                             from './metadata/meta';
-import { EntityRelationType } from './entity-relation';
+  RelationPropertyMeta
+} from '../meta';
 import {
   GlobalClassMetaCollection,
   GlobalPropertyMetaCollection
-}                             from './metadata/meta-collection';
+} from '../meta-collection';
 
 export function Column(columnOptions) {
 
@@ -75,7 +77,7 @@ export function PrimaryGeneratedColumn(columnOptions) {
       object,
       options,
       columnOptions,
-      meta: {}
+      extra: {}
     }));
   };
 }
@@ -173,6 +175,8 @@ function ManyToMany(typeFunction, inverseSideOrOptions, options?) {
 }
 
 export function ManyToOne<T, R>(typeFunction: (type?: any) => Constructor<T>, inverseSide: (object: T) => R, columnOptions?) {
+  const relatedConstructorFactory = typeFunction;
+  const relatedProperty = getInverseFnPropertyName(inverseSide);
 
   return function (object, propertyName) {
     const options = {
@@ -188,23 +192,22 @@ export function ManyToOne<T, R>(typeFunction: (type?: any) => Constructor<T>, in
     };
     const type = options.type;
 
-    GlobalPropertyMetaCollection.push(new PropertyRelationMeta({
+    GlobalPropertyMetaCollection.push(new RelationPropertyMeta({
       fn: object.constructor,
       className: object.constructor.name,
       propertyName,
       object,
       type,
       options,
-      columnOptions,
-      meta: {
-        relation: {
-          type: EntityRelationType.ManyToOne,
-          base: {
-            getFn: typeFunction,
-            property: undefined
+      extra: {
+        type: EntityRelationType.ManyToOne,
+        refs: {
+          toOne: {
+            constructorFactory: relatedConstructorFactory,
+            property: relatedProperty
           },
-          related: {
-            getFn: () => object.constructor,
+          manyTo: {
+            constructorFactory: () => object.constructor,
             property: propertyName
           }
         }
@@ -214,6 +217,8 @@ export function ManyToOne<T, R>(typeFunction: (type?: any) => Constructor<T>, in
 }
 
 export function OneToMany<T, R>(typeFunction: (type?: any) => Constructor<T>, inverseSide: (object: T) => R, columnOptions?) {
+  const relatedConstructorFactory = typeFunction;
+  const relatedProperty = getInverseFnPropertyName(inverseSide);
 
   return function (object, propertyName) {
     const options = {
@@ -228,27 +233,25 @@ export function OneToMany<T, R>(typeFunction: (type?: any) => Constructor<T>, in
       ...columnOptions
     };
     const type = options.type;
-    const baseFn = () => object.constructor;
-    const relatedFn = typeFunction;
+    const entityConstructorFactor = () => object.constructor;
 
-    GlobalPropertyMetaCollection.push(new PropertyRelationMeta({
+    GlobalPropertyMetaCollection.push(new RelationPropertyMeta({
       fn: object.constructor,
       className: object.constructor.name,
       propertyName,
       object,
       type,
       options,
-      columnOptions,
-      meta: {
-        relation: {
-          type: EntityRelationType.OneToMany,
-          base: {
-            getFn: baseFn,
+      extra: {
+        type: EntityRelationType.OneToMany,
+        refs: {
+          oneTo: {
+            constructorFactory: entityConstructorFactor,
             property: propertyName
           },
-          related: {
-            getFn: relatedFn,
-            property: undefined
+          toMany: {
+            constructorFactory: relatedConstructorFactory,
+            property: relatedProperty
           }
         }
       }

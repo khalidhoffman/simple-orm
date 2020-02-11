@@ -16,6 +16,9 @@ type PrimitiveKeys<T> = {
 
 type DTO<T> = Pick<T, PrimitiveKeys<T>>
 
+type IEntityRelationType = 'many-to-one' | 'many-to-many' | 'one-to-many' | 'one-to-one';
+type IEntityRelationOperator = '=' | '>' | '<' | '>=' | '<=' | 'REGEXP' | 'IS' | 'IS NOT';
+
 interface IMetaParams {
   className: string;
   fn: Constructor;
@@ -39,7 +42,7 @@ interface Aliased<Name extends string> extends Named<Name> {
   alias: Name;
 }
 
-interface ColumnDefinition<Name extends string, Type> extends Aliased<Name> {
+interface ColumnDefinition<Name extends string, Type> extends Partial<Aliased<Name>> {
   jsType?: Type;
   dataType: string;
   primaryKey?: boolean;
@@ -55,6 +58,16 @@ interface ColumnDefinition<Name extends string, Type> extends Aliased<Name> {
   scope?: Type;
 }
 
+interface IMetaSqlOptions extends ColumnDefinition<any , any> {
+  alias: string;
+  name?: string;
+}
+
+interface IMetaOptions {
+  type: IPropertyMetaType;
+  sql: IMetaSqlOptions;
+}
+
 interface IPropertyMetaOptions {
   type: IPropertyMetaType;
   /**
@@ -65,16 +78,42 @@ interface IPropertyMetaOptions {
   inverseSide?: Function;
 }
 
-interface IPropertyMetaExtra {
-  relation?: IEntityRelation;
+
+interface IQueryPropertyRelation {
+  type: IEntityRelationType;
+  refs: IRelationPropertyMetaEntityRefs
+}
+
+type IPropertyMetaExtra = IQueryPropertyRelation;
+
+interface IRelationPropertyMetaEntityRef {
+  property: PropertyKey;
+  constructorFactory: (object?: any) => Constructor;
+}
+
+interface IRelationPropertyMetaExtraEntity {
+  property: PropertyKey;
+  fn: Constructor;
+}
+
+interface IRelationPropertyMetaEntityRefs {
+  oneTo?: IRelationPropertyMetaEntityRef;
+  manyTo?: IRelationPropertyMetaEntityRef;
+  to?: IRelationPropertyMetaEntityRef;
+  toMany?: IRelationPropertyMetaEntityRef;
+  toOne?: IRelationPropertyMetaEntityRef;
 }
 
 interface IPropertyMeta extends IMeta {
   propertyName: PropertyKey;
   options: IPropertyMetaOptions;
   type?: IPropertyMetaType;
-  // TODO refactor {@link IPropertyMeta#meta} to better name ie `IPropertyMeta#extra`
-  meta?: IPropertyMetaExtra;
+}
+
+interface IRelationPropertyMeta extends IPropertyMeta {
+  extra: IPropertyMetaExtra;
+  classMeta?: IClassMeta;
+  relatedMeta?: IRelationPropertyMeta[];
 }
 
 interface IClassMeta extends IMeta {
@@ -91,21 +130,6 @@ interface IQueryParams<T = any> {
   options?: Partial<IRetrieveOptions<T> & ISaveOptions<T>>;
 }
 
-type IEntityRelationType = 'many-to-one' | 'many-to-many' | 'one-to-many' | 'one-to-one';
-type IEntityRelationOperator = '=' | '>' | '<' | '>=' | '<=' | 'REGEXP' | 'IS' | 'IS NOT';
-
-interface IEntityRelation {
-  base: {
-    property: PropertyKey;
-    getFn: (object?: any) => Constructor;
-  };
-  related: {
-    property: PropertyKey;
-    getFn: (object?: any) => Constructor;
-  };
-  type: IEntityRelationType;
-}
-
 type DeepPartial<T> = { [K in keyof T]?: DeepPartial<T[K]> }
 type IRelationalQueryPartial<T> = { [K in keyof T]?: IRelationalQueryPartial<T[K]> | true }
 
@@ -115,25 +139,6 @@ interface IRetrieveOptions<T = any> {
 
 interface ISaveOptions<T = any> {
 
-}
-
-interface IQueryProperty {
-  entity: IClassMeta;
-  meta: IPropertyMeta;
-  relationMeta: IPropertyMeta;
-  alias: string;
-}
-
-interface IQueryRelationProperty {
-  alias: string;
-  entity: IClassMeta;
-  property: IQueryProperty;
-}
-
-interface IQueryPropertyRelation {
-  type: IEntityRelationType;
-  base: IQueryRelationProperty;
-  related: IQueryRelationProperty;
 }
 
 /**

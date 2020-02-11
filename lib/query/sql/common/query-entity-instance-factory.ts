@@ -35,75 +35,66 @@ export class QueryEntityInstanceFactory<T extends object> {
   createFromValueSets(valueSets: IQueryValueSet[], params?: IQueryEntityInstanceParams<T>): T {
     const constructor = this.fn;
     // TODO determine whether QueryEntityInstanceFactory should create nested properties according to `valueSets` or explicit `relations`.
-    //  if `relations` is specifier, do we exclude non-specified properties?
-    const instance = this.create();
-    const queryRelations = GlobalMetaRegistry.getQueryRelations(constructor, this.getInstanceRelations(instance));
-    const propertyMetas = GlobalMetaRegistry.getPropertyMetasByConstructor(constructor);
-    const relationMetas = GlobalMetaRegistry.getRelationMetasByConstructor(constructor);
+    //  if `relations` is specifier, do we exclude non-specified properties after creation?
+    const instance = this.create(valueSets);
+    const relationPropertyMetas = GlobalMetaRegistry.getRelationMetasByConstructor(constructor);
 
-    valueSets.forEach(valueSet => {
+    relationPropertyMetas.forEach((relationPropertyMeta) => {
+      const propertyName = relationPropertyMeta.propertyName;
+      const propertyValue = instance[propertyName as keyof typeof instance];
 
-      propertyMetas.concat(relationMetas).forEach((propertyMeta, propertyMetaIndex) => {
-        const propertyName = propertyMeta.propertyName;
-        const propertyValue = valueSet[propertyName as keyof typeof valueSet];
+      if (propertyValue === undefined || propertyValue === null) {
+        // NOTE we ignore properties with undefined/null values
+        return;
+      }
 
-        if (propertyValue === undefined || propertyValue === null) {
-          // NOTE we ignore properties with undefined/null values
-          return;
+      // TODO merge values for each IQueryPropertyRelation
+      debugger
+
+      switch (relationPropertyMeta.extra.type) {
+        case EntityRelationType.OneToMany: {
+          const baseEntityPropertyKey: PropertyKey = relationPropertyMeta.refs.oneTo.property;
+          const baseEntityPropertyValue = instance[baseEntityPropertyKey] || [];
+          const relatedEntityPropertyKey: PropertyKey = relationPropertyMeta.refs.toMany.property;
+          const relatedConstructor = relationPropertyMeta.refs.toMany.constructorFactory();
+          const relatedInstanceFactory = new QueryEntityInstanceFactory(relatedConstructor);
+          const relatedInstances = baseEntityPropertyValue.map(arrayValueItem => {
+            return relatedInstanceFactory.createFromValueSets([
+              // TODO determine correct ValueSet
+              { [relatedEntityPropertyKey]: instance },
+              arrayValueItem
+            ]);
+          });
+
+          if (propertyName !== baseEntityPropertyKey) {
+            throw new Error(`[debug] mismatch propertyName (${propertyName.toString()}) with baseEntityPropertyKey (${baseEntityPropertyKey.toString()})`)
+          }
+
+          instance[baseEntityPropertyKey] = relatedInstances;
+          break;
         }
 
-        const propertyRelation: IQueryPropertyRelation = queryRelations.find(queryRelation => {
-          const queryRelationBasePropertyMeta: IPropertyMeta = queryRelation.base.property.meta;
-          const queryRelationRelatedPropertyMeta: IPropertyMeta = queryRelation.base.property.relationMeta;
-          const isSameEntity = queryRelationBasePropertyMeta.fn === propertyMeta.fn;
-          const isSamePropertyName = queryRelationBasePropertyMeta.propertyName === propertyName;
-          const isSameRelatedPropertyName = queryRelationRelatedPropertyMeta.propertyName === propertyName;
-
-          return isSameEntity && (isSamePropertyName || isSameRelatedPropertyName);
-        });
-        const propertyRelationMetaType = propertyRelation && propertyRelation.type;
-
-        switch (propertyRelationMetaType) {
-          case EntityRelationType.OneToMany: {
-            const baseEntityPropertyKey: PropertyKey = propertyRelation && propertyRelation.base.property.relationMeta.propertyName || propertyName;
-            const relatedEntityPropertyKey: PropertyKey = propertyRelation.related.property.meta.propertyName;
-            const arrayValue = instance[baseEntityPropertyKey] || [];
-            const relatedConstructor = propertyRelation.related.entity.fn;
-            const relatedInstanceFactory = new QueryEntityInstanceFactory(relatedConstructor);
-            const relatedInstances = relatedInstanceFactory.createFromValueSets([
-                // TODO determine correct ValueSet
-                { [relatedEntityPropertyKey]: propertyValue },
-                valueSet
-              ]);
-
-            instance[propertyName] = propertyValue;
-            instance[baseEntityPropertyKey] = arrayValue.concat(relatedInstances);
-            break;
-          }
-
-          case EntityRelationType.ManyToMany: {
-            throw new Error('Many-To-Many relation is not implemented');
-          }
-
-          case EntityRelationType.ManyToOne: {
-            const relatedPropertyKey: PropertyKey = propertyRelation && propertyRelation.related.property.meta.propertyName || propertyName;
-            const relatedConstructor = propertyRelation.related.entity.fn;
-            const relatedInstanceFactory = new QueryEntityInstanceFactory(relatedConstructor);
-
-            instance[propertyName] = relatedInstanceFactory.createFromValueSets([
-                // TODO determine correct ValueSet
-                { [relatedPropertyKey]: propertyValue },
-                valueSet
-              ]);
-            break;
-          }
-
-          default: {
-            const relatedBasePropertyKey: PropertyKey = propertyRelation && propertyRelation.base.property.relationMeta.propertyName || propertyName;
-            instance[relatedBasePropertyKey] = propertyValue;
-          }
+        case EntityRelationType.ManyToMany: {
+          throw new Error('Many-To-Many relation is not implemented');
         }
-      });
+
+        case EntityRelationType.ManyToOne: {
+          const relatedPropertyKey: PropertyKey = relationPropertyMeta.refs.toOne.property;
+          const relatedConstructor = relationPropertyMeta.refs.toOne.constructorFactory();
+          const relatedInstanceFactory = new QueryEntityInstanceFactory(relatedConstructor);
+
+          debugger
+          instance[propertyName] = relatedInstanceFactory.createFromValueSets([
+            // TODO determine correct ValueSet
+            { [relatedPropertyKey]: propertyValue },
+          ]);
+          break;
+        }
+
+        default: {
+          instance[propertyName] = propertyValue;
+        }
+      }
     });
 
     return instance;

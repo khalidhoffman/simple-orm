@@ -9,7 +9,7 @@ import { AbstractQuery } from '../abstract';
 
 import { SqlQueryOperationQueue } from './common/query-operation-queue';
 import {
-  EntityPropertyAliasSqlRef,
+  EntityPropertySqlRef,
   EntitySqlRef,
   sql
 }                               from './common/entity-sql-ref';
@@ -41,7 +41,7 @@ export abstract class AbstractSqlQuery<T extends object = any> extends AbstractQ
     entityPropertyMetadata: IPropertyMeta,
     entityMetadata: IClassMeta = this.entityMetadata,
     options?: { disableAlias: boolean }
-  ): EntityPropertyAliasSqlRef<Key, Entity> {
+  ): EntityPropertySqlRef<Key, Entity> {
 
     if (options && options.disableAlias || !entityPropertyMetadata.options.sql.alias) {
       return this.sql.ref(entityPropertyMetadata.options.sql.name).withSchema(entityMetadata.tableName);

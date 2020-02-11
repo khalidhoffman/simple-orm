@@ -9,4 +9,4 @@ export const sql = knex({
 
 export type EntitySqlRef = Knex.QueryBuilder;
 
-export type EntityPropertyAliasSqlRef<K extends string, E> = Knex.Ref<K, E>;
+export type EntityPropertySqlRef<K extends string = any, E = any> = Knex.Ref<K, E>;

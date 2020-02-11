@@ -1,144 +1,71 @@
+import { logger } from '../logger';
 import * as utils from '../utils';
 
-import { EntityRelationType } from '../entity-relation';
-
 import {
-  ClassMetaCollection,
   GlobalClassMetaCollection,
   GlobalPropertyMetaCollection,
-  PropertyMetaCollection
 } from './meta-collection';
 
 export class MetaRegistry {
-  classMetaCollection: ClassMetaCollection = GlobalClassMetaCollection;
-  propertyMetaCollection: PropertyMetaCollection = GlobalPropertyMetaCollection;
 
   getIdentifierPropertyMeta<T = any>(constructor: Constructor<T>): IPropertyMeta {
-    const entityPropertiesMetadata = this.propertyMetaCollection.getPropertyMetasByConstructor(constructor);
+    const entityPropertiesMetadata = GlobalPropertyMetaCollection.getPropertyMetasByConstructor(constructor);
     return entityPropertiesMetadata.find(propertyMeta => propertyMeta.options.sql.primaryKey);
   }
 
-  getPropertyMeta<T>(constructor: Constructor<T>, propertyName: keyof T): IPropertyMeta {
-    return this.propertyMetaCollection.getDefaultPropertyMeta(constructor, propertyName);
+  getPropertyMeta<T>(constructor: Constructor<T>, propertyName: keyof T): IPropertyMeta[] {
+    return GlobalPropertyMetaCollection.getPropertyMetas(constructor, propertyName);
   }
 
-  getRelationMetasByConstructor<T>(constructor: Constructor<T>): IPropertyMeta[] {
-    return this.propertyMetaCollection.getRelationMetasByConstructor(constructor);
+  getRelationMetas<T>(constructor: Constructor<T>, propertyName: keyof T): IRelationPropertyMeta[] {
+    return GlobalPropertyMetaCollection.getRelationMetasByConstructor(constructor)
+      .filter(meta => meta.propertyName === propertyName);
   }
 
-  getPropertyRelationMeta<T>(constructor: Constructor<T>, propertyName: keyof T): IPropertyMeta {
-    const relationMetas = this.getRelationMetasByConstructor(constructor);
+  getRelationMetasByConstructor<T>(constructor: Constructor<T>): IRelationPropertyMeta[] {
+    return GlobalPropertyMetaCollection.getRelationMetasByConstructor(constructor);
+  }
 
-    return relationMetas.reduce((propertyMeta: IPropertyMeta, relation: IPropertyMeta) => {
-      if (relation.propertyName !== propertyName) {
-        return propertyMeta;
-      }
-      return Object.assign({ ...propertyMeta }, relation, propertyMeta);
-    }, null);
+  getPropertyRelationMeta<T>(constructor: Constructor<T>, propertyName: keyof T): IRelationPropertyMeta[] {
+    return GlobalPropertyMetaCollection.getRelationMetas(constructor, propertyName);
   }
 
   getPropertyMetasByConstructor<T>(constructor: Constructor<T>): IPropertyMeta[] {
-    return this.propertyMetaCollection.getPropertyMetasByConstructor(constructor);
+    return GlobalPropertyMetaCollection.getPropertyMetasByConstructor(constructor);
   }
 
   getClassMeta<T>(constructor: Constructor<T>): IClassMeta {
-    return this.classMetaCollection.getClassMeta(constructor);
+    return GlobalClassMetaCollection.getClassMeta(constructor);
   }
 
-  getQueryRelations<T extends object = any>(entityConstructor: Constructor<T>, queryRelationsParams: IRelationalQueryPartial<T>, accumulator: IQueryPropertyRelation[] = []): IQueryPropertyRelation[] {
-    const entityPrimaryColumnMetadata = GlobalMetaRegistry.getIdentifierPropertyMeta(entityConstructor);
-    const entityMetadata = GlobalMetaRegistry.getClassMeta(entityConstructor);
-    const relations: IQueryPropertyRelation[] = accumulator;
-
+  getQueryRelationPropertyMeta<T extends object = any>(entityConstructor: Constructor<T>, queryRelationsParams: IRelationalQueryPartial<T>): IRelationPropertyMeta[] {
     if ((queryRelationsParams === undefined) || (queryRelationsParams === null)) {
       debugger
     }
-
-
-    if (utils.isPrimitive(queryRelationsParams)) {
-      return [];
-    }
-
-    Object.keys(queryRelationsParams).forEach(queryParamProperty => {
-      const entityPropertyRelationMeta = GlobalMetaRegistry.getPropertyRelationMeta(entityConstructor, queryParamProperty as keyof T);
-      if (!entityPropertyRelationMeta) {
-        debugger
-      }
-      const entityPropertySqlName = entityPropertyRelationMeta.options.sql.name;
-      const entityResolvedPropertyMeta = GlobalMetaRegistry.propertyMetaCollection.find(propertyMeta => {
-        return propertyMeta.propertyName === entityPropertyRelationMeta.meta.relation.related.property
-          && propertyMeta.fn === entityPropertyRelationMeta.meta.relation.related.getFn()
-      }) || entityPrimaryColumnMetadata;
-      const entityResolvedPropertyName = entityResolvedPropertyMeta.propertyName;
-      const entityPropertyMeta = GlobalMetaRegistry.getPropertyMeta(entityConstructor, entityResolvedPropertyName as keyof T) || entityPropertyRelationMeta;
-
-      if (!entityPropertyMeta) {
-        debugger
+    const getRelations = <T>(entityConstructor: Constructor<T>, queryRelationsParams: IRelationalQueryPartial<T>, relations: IRelationPropertyMeta[] = []): IRelationPropertyMeta[] => {
+      if (!utils.isObject(queryRelationsParams)) {
+        return relations;
       }
 
-      let baseRelation: IQueryPropertyRelation = {
-        type: entityPropertyRelationMeta.meta.relation.type,
-        related: {
-          property: null,
-          alias: null,
-          entity: null,
-        },
-        base: {
-          property: {
-            entity: entityMetadata,
-            meta: entityPropertyMeta,
-            relationMeta: entityPropertyRelationMeta,
-            alias: entityPropertyMeta.options.sql.alias
-          },
-          alias: entityPropertyMeta.options.sql.alias,
-          entity: entityMetadata
-        }
-      };
 
-      if (entityPropertyRelationMeta && entityPropertyRelationMeta.meta.relation) {
+      Object.keys(queryRelationsParams).forEach(queryParamProperty => {
+        const propertyRelations = GlobalMetaRegistry.getPropertyRelationMeta(entityConstructor, queryParamProperty as keyof T);
 
-        switch (entityPropertyRelationMeta.meta.relation.type) {
-          case EntityRelationType.OneToMany:
-          case EntityRelationType.ManyToOne: {
-            const relatedEntityConstructor = entityPropertyRelationMeta.options.typeFunction();
-            const relatedEntityPrimaryMeta = GlobalMetaRegistry.getIdentifierPropertyMeta(relatedEntityConstructor);
-            const relatedEntityPropertyName = utils.getInverseFnPropertyName(entityPropertyRelationMeta.options.inverseSide);
-            const relatedPropertyRelationMeta = GlobalMetaRegistry.getPropertyRelationMeta(relatedEntityConstructor, relatedEntityPropertyName);
-            const relatedEntityMeta = GlobalMetaRegistry.getClassMeta(relatedEntityConstructor);
-            const relatedResolvedPropertyName = relatedPropertyRelationMeta.options.sql.name || relatedEntityPrimaryMeta.propertyName;
-            const relatedPropertyMeta = GlobalMetaRegistry.getPropertyMeta(relatedEntityConstructor, relatedResolvedPropertyName as keyof T) || relatedPropertyRelationMeta;
-            const nestedQueryRelations = GlobalMetaRegistry.getQueryRelations(relatedEntityConstructor, queryRelationsParams[queryParamProperty]);
-            baseRelation.type = entityPropertyRelationMeta.meta.relation.type;
-            baseRelation.related = {
-              entity: relatedEntityMeta,
-              alias: relatedPropertyMeta.options.sql.alias,
-              property: {
-                entity: relatedEntityMeta,
-                meta: relatedPropertyMeta,
-                relationMeta: relatedPropertyRelationMeta,
-                alias: relatedPropertyMeta.options.sql.alias
-              }
-            };
-            relations.push(...nestedQueryRelations);
-            break;
-          }
+        propertyRelations.forEach(propertyRelation => {
+          propertyRelation.relatedMeta.forEach(relationMeta => {
+            getRelations(relationMeta.fn, queryRelationsParams[queryParamProperty], relations);
+          })
+        });
 
-          case EntityRelationType.OneToOne: {
-            throw new Error('query relations for OneToOne not supported');
-          }
+        relations.push(...propertyRelations);
+      });
 
-          case EntityRelationType.ManyToMany: {
-            throw new Error('query relations for ManyToMany not supported');
-          }
-        }
+      return relations;
+    };
 
-        relations.push(baseRelation);
-      }
-
-    });
-
-    return relations;
+    return getRelations(entityConstructor, queryRelationsParams);
   }
 }
 
 export const GlobalMetaRegistry = new MetaRegistry();
+

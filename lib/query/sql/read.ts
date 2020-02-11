@@ -8,12 +8,12 @@ import * as utils                     from '../../utils';
 import { GlobalClassMetaCollection }  from '../../metadata/meta-collection';
 import { GlobalMetaRegistry }         from '../../metadata/meta-registry';
 import { QueryEntityInstanceFactory } from './common/query-entity-instance-factory';
-import { EntityPropertyAliasSqlRef }  from './common/entity-sql-ref';
-import { normalizeValueSet }    from './common/builder';
+import { EntityPropertySqlRef }       from './common/entity-sql-ref';
+import { normalizeValueSet }          from './common/builder';
 import { EntityQueryGraphNode } from '../entity-query-graph-node';
 
-type IWhereParamValueSqlRef = EntityPropertyAliasSqlRef<any, any> | any;
-type IWhereParamsPropertySqlRef = EntityPropertyAliasSqlRef<any, any>;
+type IWhereParamValueSqlRef = EntityPropertySqlRef<any, any> | any;
+type IWhereParamsPropertySqlRef = EntityPropertySqlRef<any, any>;
 
 interface IWhereParam {
   property: { sql: IWhereParamsPropertySqlRef, meta: IPropertyMeta };
@@ -41,47 +41,54 @@ export class SqlReadQuery<T extends object = any> extends AbstractSqlQuery<T> {
    */
 
   protected applySelects(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
-    const relationalSelects = GlobalMetaRegistry.getQueryRelations(this.Entity, this.relations).reduce((selects, relationMeta) => {
-      return selects.concat([
-          this.getPropertySqlRef(relationMeta.base.property.meta, relationMeta.base.entity),
-          this.getPropertySqlRef(relationMeta.related.property.meta, relationMeta.related.entity),
-        ])
-        .concat((() => {
-          return this.metaRegistry.getPropertyMetasByConstructor(relationMeta.related.entity.fn)
-            .map(relatedPropertyMeta => this.getPropertySqlRef(relatedPropertyMeta, relationMeta.related.entity))
-        })());
-    }, []);
-    const selects = this.entityPropertiesMetadata.map((propertyMetadata) => {
+    // TODO implement inclusion of all related properties
+    const relationalSelects: EntityPropertySqlRef[] = GlobalMetaRegistry.getQueryRelationPropertyMeta(this.Entity, this.relations)
+      .reduce((selects: EntityPropertySqlRef[], relationPropertyMeta) => {
+        const relationPropertySqlRef = this.getPropertySqlRef(relationPropertyMeta, relationPropertyMeta.classMeta);
+        const relatedEntityPropertySqlRefs = relationPropertyMeta.relatedMeta.reduce((PropertySqlRefs: EntityPropertySqlRef[], relatedRelationPropertyMeta) => {
+          const relatedPropertySqlRefs: EntityPropertySqlRef[] = GlobalMetaRegistry.getPropertyMetasByConstructor(relatedRelationPropertyMeta.fn)
+            .map(propertyMeta => {
+              return this.getPropertySqlRef(propertyMeta, GlobalMetaRegistry.getClassMeta(propertyMeta.fn))
+            });
+
+          return PropertySqlRefs.concat(relatedPropertySqlRefs);
+        }, []);
+
+        return selects.concat(relationPropertySqlRef).concat(relatedEntityPropertySqlRefs);
+      }, []);
+    const entityPropertySelects: EntityPropertySqlRef[] = this.entityPropertiesMetadata.map((propertyMetadata) => {
       return this.getPropertySqlRef(propertyMetadata, this.entityMetadata);
     });
-
-    const uniqueSelects = selects.concat(relationalSelects).reduce((uniqueSelects, select) => {
-      if (uniqueSelects.find(uniqueSelect => uniqueSelect.toQuery() === select.toQuery())) {
+    const sortedSelects: EntityPropertySqlRef[] = entityPropertySelects.concat(relationalSelects).reduce((uniqueSelects, select) => {
+      const preexistingEquivalentSelect = uniqueSelects.find(uniqueSelect => uniqueSelect.toQuery() === select.toQuery());
+      if (preexistingEquivalentSelect) {
         return uniqueSelects;
       }
 
       return uniqueSelects.concat(select);
     }, []);
 
-    return sqlQuery.select(...uniqueSelects);
+    return sqlQuery.select(...sortedSelects);
   }
 
   protected applyJoins(sqlQuery: Knex.QueryBuilder): Knex.QueryBuilder {
-    const queryRelations: IQueryPropertyRelation[] = GlobalMetaRegistry.getQueryRelations(this.Entity, this.relations);
+    const relationPropertyMeta: IRelationPropertyMeta[] = GlobalMetaRegistry.getQueryRelationPropertyMeta(this.Entity, this.relations);
     let tableName: string;
-    let baseProperty: EntityPropertyAliasSqlRef<string, T>;
-    let relatedProperty: EntityPropertyAliasSqlRef<string, any>;
-    sortQueryRelations(queryRelations).forEach((queryRelation: IQueryPropertyRelation) => {
+    let baseProperty: EntityPropertySqlRef<string, T>;
+    let relatedProperty: EntityPropertySqlRef<string, any>;
+    sortQueryRelations(relationPropertyMeta).forEach((relationPropertyMeta: IRelationPropertyMeta) => {
 
-      switch (queryRelation.type) {
+      switch (relationPropertyMeta.extra.type) {
         case EntityRelationType.OneToOne:
         case EntityRelationType.ManyToOne:
         case EntityRelationType.OneToMany: {
-          tableName = queryRelation.related.entity.tableName;
-          baseProperty = this.getPropertySqlRef(queryRelation.base.property.meta, queryRelation.base.entity, { disableAlias: true });
-          relatedProperty = this.getPropertySqlRef(queryRelation.related.property.meta, queryRelation.related.entity, { disableAlias: true });
+          relationPropertyMeta.relatedMeta.map(relatedRelationPropertyMeta => {
+            tableName = relatedRelationPropertyMeta.classMeta.tableName;
+            baseProperty = this.getPropertySqlRef(relationPropertyMeta, relationPropertyMeta.classMeta, { disableAlias: true });
+            relatedProperty = this.getPropertySqlRef(relatedRelationPropertyMeta, relatedRelationPropertyMeta.classMeta, { disableAlias: true });
 
-          sqlQuery = sqlQuery.leftJoin(tableName, this.sql.raw(`${baseProperty.toQuery()} = ${relatedProperty.toQuery()}`));
+            sqlQuery = sqlQuery.leftJoin(tableName, this.sql.raw(`${baseProperty.toQuery()} = ${relatedProperty.toQuery()}`));
+          });
           break;
         }
         default: {
@@ -158,8 +165,9 @@ export class SqlReadQuery<T extends object = any> extends AbstractSqlQuery<T> {
     const persistedEntityValuesQuery = this.getQuery();
     const results: IQueryValueSet[] = await this.executeSqlQuery(persistedEntityValuesQuery);
     const instanceFactory = new QueryEntityInstanceFactory(this.Entity);
+    const instanceValueSets: IQueryValueSet[] = results.map(result => normalizeValueSet(this.Entity, result));
 
-    return instanceFactory.createFromValueSets(results.map(result => normalizeValueSet(this.Entity, result))) as T;
+    return instanceFactory.createFromValueSets(instanceValueSets) as T;
   }
 
   async execute(): Promise<T> {
@@ -172,7 +180,7 @@ export class SqlReadQuery<T extends object = any> extends AbstractSqlQuery<T> {
 }
 
 
-function sortQueryRelations(queryRelations: IQueryPropertyRelation[]): IQueryPropertyRelation[] {
+function sortQueryRelations<T>(queryRelations: T[]): T[] {
   return queryRelations.reverse();
   // sortBy(queryRelations, (sortingQueryRelation: IQueryPropertyRelation) => {
   //   const queryRelationEntities = queryRelations

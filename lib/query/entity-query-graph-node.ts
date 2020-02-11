@@ -56,8 +56,8 @@ export class EntityQueryGraphNode<T extends object = any> extends GraphNode {
     this.children = utils.mapObject(entity, (children, value: T[keyof T], propertyKey: PropertyKey) => {
       if (Array.isArray(value)) {
         const childrenGraphNodes = value.map((child, childIndex) => {
-          const propertyMeta = GlobalMetaRegistry.getPropertyRelationMeta(entityConstructor, propertyKey as keyof T);
-          const childConstructor = propertyMeta.meta.relation.related.getFn();
+          const [propertyMeta] = GlobalMetaRegistry.getPropertyRelationMeta(entityConstructor, propertyKey as keyof T);
+          const childConstructor = propertyMeta.extra.refs.toMany.constructorFactory();
 
           return new EntityQueryGraphNode({
             entityConstructor: childConstructor,
@@ -70,8 +70,8 @@ export class EntityQueryGraphNode<T extends object = any> extends GraphNode {
         return children.concat(childrenGraphNodes)
 
       } else if (typeof value === 'object') {
-        const propertyMeta = GlobalMetaRegistry.getPropertyRelationMeta(entityConstructor, propertyKey as keyof T)
-        const childConstructor = propertyMeta.meta.relation.related.getFn();
+        const [propertyMeta] = GlobalMetaRegistry.getPropertyRelationMeta(entityConstructor, propertyKey as keyof T)
+        const childConstructor = propertyMeta.extra.refs.toOne.constructorFactory();
         const childGraphNode = new EntityQueryGraphNode({
           entityConstructor: childConstructor,
           entity: value,
