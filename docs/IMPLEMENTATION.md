@@ -12,10 +12,13 @@ areas of query execution:
 - order of operations
     - [ ] will this need to be recursive/iterative?
         - any implementation should be deterministic
+- hooks
 - error handling
     - transactions
     - thread context    
 
+areas of query value return:
+- callback handling
 
 ## Diagrams
 
